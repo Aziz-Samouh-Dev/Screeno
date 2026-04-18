@@ -1,0 +1,235 @@
+import { Head, router } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import type { BreadcrumbItem } from '@/types';
+import { Button } from '@/components/ui/button';
+import { toast } from 'sonner';
+import {
+    ArrowLeft, Edit2, Trash2, Package, Tag, Copy, Check,
+    TrendingUp, BarChart3, Calendar, Clock, ImageOff, X,
+} from 'lucide-react';
+import { useState } from 'react';
+
+interface Produit {
+    uuid: string;
+    nom: string;
+    sku: string;
+    image?: string | null;
+    description?: string | null;
+    purchase_price: number;
+    sale_price: number;
+    stock_quantity: number;
+    created_at: string;
+    updated_at: string;
+}
+
+interface Props { produit: Produit }
+
+function stockInfo(qty: number) {
+    if (qty > 10) return { label: 'In Stock',    cls: 'bg-green-50 text-green-700 border-green-200',  bar: 'bg-green-500'  };
+    if (qty > 0)  return { label: 'Low Stock',   cls: 'bg-amber-50 text-amber-700 border-amber-200',  bar: 'bg-amber-500'  };
+    return            { label: 'Out of Stock', cls: 'bg-red-50   text-red-700   border-red-200',    bar: 'bg-red-400'    };
+}
+
+export default function Show({ produit }: Props) {
+    const breadcrumbs: BreadcrumbItem[] = [
+        { title: 'Products', href: '/produits' },
+        { title: produit.nom, href: `/produits/${produit.uuid}` },
+    ];
+
+    const [showModal, setShowModal] = useState(false);
+    const [copied, setCopied]       = useState(false);
+
+    const si     = stockInfo(produit.stock_quantity);
+    const margin = Number(produit.sale_price) - Number(produit.purchase_price);
+    const marginPct = Number(produit.purchase_price) > 0
+        ? (margin / Number(produit.purchase_price)) * 100 : 0;
+
+    const copySku = async () => {
+        try {
+            await navigator.clipboard.writeText(produit.sku);
+            setCopied(true);
+            toast.success('SKU copied to clipboard');
+            setTimeout(() => setCopied(false), 2000);
+        } catch {
+            toast.error('Failed to copy SKU');
+        }
+    };
+
+    const handleDelete = () => {
+        if (confirm('Delete this product? This cannot be undone.'))
+            router.delete(`/produits/${produit.uuid}`);
+    };
+
+    return (
+        <AppLayout breadcrumbs={breadcrumbs}>
+            <Head title={produit.nom} />
+
+            <div className="flex flex-col gap-6 p-6">
+
+                {/* HEADER */}
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-3">
+                        <Button variant="ghost" size="icon" className="rounded-xl" onClick={() => router.visit('/produits')}>
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
+                        <div>
+                            <h1 className="text-xl font-bold text-slate-900">{produit.nom}</h1>
+                            <p className="text-sm font-mono text-slate-400">{produit.sku}</p>
+                        </div>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <Button variant="outline" className="rounded-xl" onClick={() => router.visit(`/produits/${produit.uuid}/edit`)}>
+                            <Edit2 className="mr-2 h-4 w-4" /> Edit
+                        </Button>
+                        <Button variant="destructive" className="rounded-xl" onClick={handleDelete}>
+                            <Trash2 className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+
+                {/* BODY */}
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                    {/* IMAGE + SKU */}
+                    <div className="space-y-4">
+                        {/* Image */}
+                        <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                            <div
+                                className={`aspect-square ${produit.image ? 'cursor-zoom-in' : ''} bg-slate-50 flex items-center justify-center overflow-hidden`}
+                                onClick={() => produit.image && setShowModal(true)}
+                            >
+                                {produit.image ? (
+                                    <img src={`/storage/${produit.image}`} alt={produit.nom} className="w-full h-full object-cover" />
+                                ) : (
+                                    <div className="flex flex-col items-center gap-2 text-slate-300">
+                                        <ImageOff className="h-12 w-12" />
+                                        <span className="text-xs">No image</span>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
+
+                        {/* SKU copy */}
+                        <button
+                            onClick={copySku}
+                            className="w-full rounded-2xl border border-slate-200 bg-white p-4 flex items-center gap-3 hover:bg-slate-50 transition-colors shadow-sm"
+                        >
+                            <div className="rounded-xl bg-slate-100 p-2">
+                                <Tag className="h-4 w-4 text-slate-500" />
+                            </div>
+                            <div className="flex-1 text-left">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">SKU</p>
+                                <p className="font-mono font-semibold text-slate-700">{produit.sku}</p>
+                            </div>
+                            {copied
+                                ? <Check className="h-4 w-4 text-green-500" />
+                                : <Copy className="h-4 w-4 text-slate-400" />}
+                        </button>
+
+                        {/* Stock status */}
+                        <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-3">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Stock Level</p>
+                                <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${si.cls}`}>{si.label}</span>
+                            </div>
+                            <div className="flex items-baseline gap-1 mb-2">
+                                <span className="text-3xl font-black text-slate-900">{produit.stock_quantity}</span>
+                                <span className="text-sm text-slate-400">units</span>
+                            </div>
+                            <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
+                                <div className={`h-full rounded-full ${si.bar} transition-all`}
+                                    style={{ width: `${Math.min(100, (produit.stock_quantity / 50) * 100)}%` }} />
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* DETAILS */}
+                    <div className="lg:col-span-2 space-y-4">
+
+                        {/* Pricing cards */}
+                        <div className="grid grid-cols-3 gap-4">
+                            <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Purchase</p>
+                                <p className="text-xl font-black text-slate-900">{Number(produit.purchase_price).toFixed(2)}</p>
+                                <p className="text-xs text-slate-400 mt-0.5">MAD</p>
+                            </div>
+                            <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
+                                <p className="text-xs font-bold text-blue-500 uppercase tracking-wide mb-2">Sale Price</p>
+                                <p className="text-xl font-black text-blue-800">{Number(produit.sale_price).toFixed(2)}</p>
+                                <p className="text-xs text-blue-400 mt-0.5">MAD</p>
+                            </div>
+                            <div className={`rounded-2xl p-5 shadow-sm border ${margin >= 0 ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
+                                <p className={`text-xs font-bold uppercase tracking-wide mb-2 ${margin >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                                    <TrendingUp className="inline h-3 w-3 mr-1" />Margin
+                                </p>
+                                <p className={`text-xl font-black ${margin >= 0 ? 'text-green-800' : 'text-red-700'}`}>
+                                    {margin >= 0 ? '+' : ''}{margin.toFixed(2)}
+                                </p>
+                                <p className={`text-xs mt-0.5 ${margin >= 0 ? 'text-green-500' : 'text-red-400'}`}>
+                                    {marginPct.toFixed(1)}%
+                                </p>
+                            </div>
+                        </div>
+
+                        {/* Description */}
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <Package className="h-4 w-4 text-slate-400" /> Description
+                            </h3>
+                            {produit.description ? (
+                                <p className="text-sm text-slate-600 leading-relaxed">{produit.description}</p>
+                            ) : (
+                                <p className="text-sm text-slate-400 italic">No description provided.</p>
+                            )}
+                        </div>
+
+                        {/* Dates */}
+                        <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                            <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
+                                <BarChart3 className="h-4 w-4 text-slate-400" /> Product Info
+                            </h3>
+                            <div className="space-y-3">
+                                <div className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center gap-2 text-slate-500">
+                                        <Calendar className="h-4 w-4" />
+                                        <span>Created</span>
+                                    </div>
+                                    <span className="font-medium text-slate-700">
+                                        {new Date(produit.created_at).toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    </span>
+                                </div>
+                                <div className="flex items-center justify-between text-sm">
+                                    <div className="flex items-center gap-2 text-slate-500">
+                                        <Clock className="h-4 w-4" />
+                                        <span>Last updated</span>
+                                    </div>
+                                    <span className="font-medium text-slate-700">
+                                        {new Date(produit.updated_at).toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+
+            {/* IMAGE MODAL */}
+            {showModal && produit.image && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm"
+                    onClick={() => setShowModal(false)}>
+                    <button className="absolute top-4 right-4 rounded-full bg-white/10 p-2 text-white hover:bg-white/20"
+                        onClick={() => setShowModal(false)}>
+                        <X className="h-5 w-5" />
+                    </button>
+                    <img
+                        src={`/storage/${produit.image}`}
+                        alt={produit.nom}
+                        className="max-w-[90vw] max-h-[90vh] object-contain rounded-2xl shadow-2xl"
+                        onClick={e => e.stopPropagation()}
+                    />
+                </div>
+            )}
+        </AppLayout>
+    );
+}
