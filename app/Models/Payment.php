@@ -28,17 +28,26 @@ class Payment extends Model
         });
 
         static::created(function ($payment) {
+            if ($payment->purchase_invoice_id) {
+                PurchaseInvoice::find($payment->purchase_invoice_id)?->updateTotals();
+            }
+            if ($payment->sales_invoice_id) {
+                SalesInvoice::find($payment->sales_invoice_id)?->updateTotals();
+            }
+            PaymentHistory::record('created', $payment->load(['salesInvoice.client', 'purchaseInvoice', 'paymentMethod']));
+        });
 
-        if ($payment->purchase_invoice_id) {
-            $invoice = PurchaseInvoice::find($payment->purchase_invoice_id);
-            $invoice->updateTotals();
-        }
+        static::updated(function ($payment) {
+            $changes = $payment->getChanges();
+            unset($changes['updated_at']);
+            if (!empty($changes)) {
+                PaymentHistory::record('updated', $payment->load(['salesInvoice.client', 'purchaseInvoice', 'paymentMethod']), $changes);
+            }
+        });
 
-        if ($payment->sales_invoice_id) {
-            $invoice = SalesInvoice::find($payment->sales_invoice_id);
-            $invoice->updateTotals();
-        }
-    });
+        static::deleting(function ($payment) {
+            PaymentHistory::record('deleted', $payment->load(['salesInvoice.client', 'purchaseInvoice', 'paymentMethod']));
+        });
     }
 
     public function getRouteKeyName()

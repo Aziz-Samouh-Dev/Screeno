@@ -6,8 +6,12 @@ use App\Http\Controllers\PaymentMethodController;
 use App\Http\Controllers\ProduitController;
 use App\Http\Controllers\PurchaseInvoiceController;
 use App\Http\Controllers\SalesInvoiceController;
-use App\Http\Controllers\SupplierController;
 use App\Http\Controllers\SalesReturnController;
+use App\Http\Controllers\SupplierController;
+use App\Models\Produit;
+use App\Models\PurchaseInvoice;
+use App\Models\SalesInvoice;
+use App\Models\SalesReturn;
 use Illuminate\Support\Facades\Route;
 use Inertia\Inertia;
 use Laravel\Fortify\Features;
@@ -19,7 +23,24 @@ Route::get('/', function () {
 })->name('home');
 
 Route::get('dashboard', function () {
-    return Inertia::render('dashboard');
+    return Inertia::render('dashboard', [
+        'stats' => [
+            'sales_revenue'        => (float) SalesInvoice::sum('paid_amount'),
+            'sales_outstanding'    => (float) SalesInvoice::where('status', '!=', 'paid')->sum('remaining_amount'),
+            'purchase_expenses'    => (float) PurchaseInvoice::sum('paid_amount'),
+            'purchase_outstanding' => (float) PurchaseInvoice::where('status', '!=', 'paid')->sum('remaining_amount'),
+            'sales_count'          => SalesInvoice::count(),
+            'purchase_count'       => PurchaseInvoice::count(),
+            'returns_count'        => SalesReturn::count(),
+            'low_stock_count'      => Produit::where('stock_quantity', '<=', 5)->count(),
+        ],
+        'recentSalesInvoices' => SalesInvoice::with('client')
+            ->latest()->take(6)->get(['uuid', 'code', 'invoice_date', 'total_amount', 'paid_amount', 'remaining_amount', 'status', 'client_id']),
+        'recentPurchaseInvoices' => PurchaseInvoice::with('supplier')
+            ->latest()->take(6)->get(['uuid', 'code', 'invoice_date', 'total_amount', 'paid_amount', 'remaining_amount', 'status', 'supplier_id']),
+        'lowStockProducts' => Produit::where('stock_quantity', '<=', 5)
+            ->orderBy('stock_quantity')->take(5)->get(['uuid', 'nom', 'sku', 'stock_quantity']),
+    ]);
 })->middleware(['auth', 'verified'])->name('dashboard');
 
 Route::middleware(['auth', 'verified'])->group(function () {
@@ -32,6 +53,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // CLIENTS
     Route::get('/clients/{client}/history', [ClientController::class, 'history'])
         ->name('clients.history');
+    Route::get('/clients/{client}/history/pdf', [ClientController::class, 'historyPdf'])
+        ->name('clients.history.pdf');
     Route::resource('clients', ClientController::class);
     Route::post('/clients/bulk-delete', [ClientController::class, 'bulkDelete'])
         ->name('clients.bulk-delete');

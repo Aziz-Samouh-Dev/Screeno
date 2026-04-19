@@ -1,62 +1,64 @@
-// resources/js/Pages/sales_returns/Create.tsx
-"use client";
-import { Head, router } from "@inertiajs/react";
-import AppLayout from "@/layouts/app-layout";
-import type { BreadcrumbItem } from "@/types";
-import SalesReturnForm from "@/components/SalesReturns/sales-return-form";
-import { useState } from "react";
+import { Head, router } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import type { BreadcrumbItem } from '@/types';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import SalesReturnForm from '@/components/SalesReturns/sales-return-form';
+import { useState } from 'react';
 
 interface Props {
-    invoices: any[];
+    invoices:        any[];
     selectedInvoice?: any;
     returnableItems?: any[];
 }
 
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: 'Retours de vente', href: '/sales_returns' },
+    { title: 'Nouveau retour', href: '/sales_returns/create' },
+];
+
 export default function Create({ invoices, selectedInvoice, returnableItems = [] }: Props) {
-    const breadcrumbs: BreadcrumbItem[] = [
-        { title: "Sales Returns", href: "/sales_returns" },
-        { title: "Create", href: "/sales_returns/create" },
-    ];
     const [processing, setProcessing] = useState(false);
 
     const defaultValues = {
         sales_invoice_id: selectedInvoice?.uuid ?? null,
-        return_date: new Date().toISOString().slice(0, 10),
-        items: returnableItems.map((item: any) => ({
-            ...item,
-            quantity: 1,
-        })),
-        notes: "",
+        return_date:      new Date().toISOString().slice(0, 10),
+        items:            returnableItems.map((item: any) => ({ ...item, quantity: 1 })),
+        notes:            '',
     };
-
-    const handleSubmit = (data: any) => {
-    router.post("/sales_returns", data, {
-        onStart: () => setProcessing(true),
-        onFinish: () => setProcessing(false),
-    });
-};
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Create Sales Return" />
-            <div className="p-4">
-                <div className="border rounded-xl overflow-hidden">
-                    <div className="px-8 py-6 border-b bg-slate-50">
-                        <h2 className="text-xl font-bold">Create Sales Return</h2>
-                        <p className="text-sm text-slate-500 mt-1">
-                            Return products to stock and credit the client
-                        </p>
+            <Head title="New Sales Return" />
+
+            <div className="flex flex-col gap-6 p-6">
+
+                <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="icon" className="rounded-xl"
+                        onClick={() => router.visit('/sales_returns')}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900">New Sales Return</h1>
+                        <p className="text-sm text-slate-400">Return products and restore inventory</p>
                     </div>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <div className="px-8 py-6">
                         <SalesReturnForm
                             invoices={invoices}
                             defaultValues={defaultValues}
-                            onSubmit={handleSubmit}
                             isEdit={false}
                             processing={processing}
+                            onSubmit={(data: any) => router.post('/sales_returns', data, {
+                                onStart:  () => setProcessing(true),
+                                onFinish: () => setProcessing(false),
+                            })}
                         />
                     </div>
                 </div>
+
             </div>
         </AppLayout>
     );

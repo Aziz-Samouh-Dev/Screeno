@@ -1,81 +1,86 @@
-"use client"
-
-import { Head, router } from "@inertiajs/react"
-import type { BreadcrumbItem } from "@/types"
-import InvoiceForm, { InvoiceFormValues, Supplier, Product } from "@/components/PurchaseInvoices/invoice-form"
-import AppLayout from "@/layouts/app-layout"
+import { Head, router } from '@inertiajs/react';
+import AppLayout from '@/layouts/app-layout';
+import type { BreadcrumbItem } from '@/types';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft, Eye } from 'lucide-react';
+import InvoiceForm, { type InvoiceFormValues, type Supplier, type Product } from '@/components/PurchaseInvoices/invoice-form';
 
 interface PurchaseInvoice {
-    id: number
-    uuid: string
-    code: string
-    supplier_id: number
-    invoice_date: string
-    notes?: string
+    id:           number;
+    uuid:         string;
+    code:         string;
+    supplier_id:  number;
+    invoice_date: string;
+    notes?:       string;
     items: {
-        id: number
-        product_id: number
-        product_name: string
-        quantity: number
-        unit_price: number
-    }[]
+        id:           number;
+        product_id:   number;
+        product_name: string;
+        quantity:     number;
+        unit_price:   number;
+    }[];
 }
 
-interface Props {
-    invoice: PurchaseInvoice
-    suppliers: Supplier[]
-    products: Product[]
-}
+interface Props { invoice: PurchaseInvoice; suppliers: Supplier[]; products: Product[] }
 
 export default function Edit({ invoice, suppliers, products }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: "Purchase Invoices", href: "/purchase_invoices" },
-        { title: invoice.code, href: `/purchase_invoices/${invoice.uuid}/edit` },
-    ]
+        { title: "Factures d'achat", href: '/purchase_invoices' },
+        { title: invoice.code,        href: `/purchase_invoices/${invoice.uuid}` },
+        { title: 'Edit',              href: `/purchase_invoices/${invoice.uuid}/edit` },
+    ];
 
     const defaultValues: InvoiceFormValues = {
         supplier_id:  invoice.supplier_id,
         invoice_date: invoice.invoice_date,
-        notes:        invoice.notes ?? "",        // ← was missing
-        items: invoice.items.map((item) => {
-            // Look up current sale_price from the products list
-            const product = products.find((p) => p.id === item.product_id)
-            return {
-                product_id:   item.product_id,
-                product_name: item.product_name,
-                quantity:     item.quantity,
-                unit_price:   item.unit_price,
-                sale_price:   product?.sale_price ?? 0,  // ← restored from product
-                is_new:       false,
-            }
-        }),
-    }
-
-    const handleSubmit = (data: InvoiceFormValues) => {
-        router.put(`/purchase_invoices/${invoice.uuid}`, data as any)
-    }
+        notes:        invoice.notes,
+        items: invoice.items.map(i => ({
+            product_id: i.product_id,
+            product_name: i.product_name,
+            quantity:   i.quantity,
+            unit_price: i.unit_price,
+        })),
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={invoice.code} />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="relative overflow-hidden rounded-xl border">
-                    <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
+            <Head title={`Edit — ${invoice.code}`} />
+
+            <div className="flex flex-col gap-6 p-6">
+
+                <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                        <Button variant="ghost" size="icon" className="rounded-xl"
+                            onClick={() => router.visit(`/purchase_invoices/${invoice.uuid}`)}>
+                            <ArrowLeft className="h-4 w-4" />
+                        </Button>
                         <div>
-                            <h2 className="text-xl font-bold text-slate-900">Edit Purchase Invoice</h2>
-                            <p className="text-slate-500 text-xs mt-1">Update the details of this purchase invoice.</p>
+                            <h1 className="text-xl font-bold text-slate-900">Modifier la facture</h1>
+                            <p className="text-sm text-slate-400 font-mono">{invoice.code}</p>
                         </div>
                     </div>
+                    <Button variant="outline" size="sm" className="rounded-xl"
+                        onClick={() => router.visit(`/purchase_invoices/${invoice.uuid}`)}>
+                        <Eye className="mr-2 h-4 w-4" /> Voir
+                    </Button>
+                </div>
+
+                <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
                     <div className="px-8 py-6">
                         <InvoiceForm
                             suppliers={suppliers}
                             products={products}
                             defaultValues={defaultValues}
-                            onSubmit={handleSubmit}
+                            onSubmit={(data) => {
+                                router.post(`/purchase_invoices/${invoice.uuid}`, {
+                                    ...data, _method: 'put',
+                                } as any);
+                            }}
                         />
                     </div>
                 </div>
+
             </div>
         </AppLayout>
-    )
+    );
 }

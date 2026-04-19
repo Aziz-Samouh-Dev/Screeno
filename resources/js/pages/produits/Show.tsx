@@ -25,14 +25,14 @@ interface Produit {
 interface Props { produit: Produit }
 
 function stockInfo(qty: number) {
-    if (qty > 10) return { label: 'In Stock',    cls: 'bg-green-50 text-green-700 border-green-200',  bar: 'bg-green-500'  };
-    if (qty > 0)  return { label: 'Low Stock',   cls: 'bg-amber-50 text-amber-700 border-amber-200',  bar: 'bg-amber-500'  };
-    return            { label: 'Out of Stock', cls: 'bg-red-50   text-red-700   border-red-200',    bar: 'bg-red-400'    };
+    if (qty > 10) return { label: 'En stock',  cls: 'bg-green-50 text-green-700 border-green-200',  bar: 'bg-green-500'  };
+    if (qty > 0)  return { label: 'Stock faible', cls: 'bg-amber-50 text-amber-700 border-amber-200',  bar: 'bg-amber-500'  };
+    return            { label: 'Rupture',      cls: 'bg-red-50   text-red-700   border-red-200',    bar: 'bg-red-400'    };
 }
 
 export default function Show({ produit }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Products', href: '/produits' },
+        { title: 'Produits', href: '/produits' },
         { title: produit.nom, href: `/produits/${produit.uuid}` },
     ];
 
@@ -79,7 +79,7 @@ export default function Show({ produit }: Props) {
                     </div>
                     <div className="flex items-center gap-2">
                         <Button variant="outline" className="rounded-xl" onClick={() => router.visit(`/produits/${produit.uuid}/edit`)}>
-                            <Edit2 className="mr-2 h-4 w-4" /> Edit
+                            <Edit2 className="mr-2 h-4 w-4" /> Modifier
                         </Button>
                         <Button variant="destructive" className="rounded-xl" onClick={handleDelete}>
                             <Trash2 className="h-4 w-4" />
@@ -103,7 +103,7 @@ export default function Show({ produit }: Props) {
                                 ) : (
                                     <div className="flex flex-col items-center gap-2 text-slate-300">
                                         <ImageOff className="h-12 w-12" />
-                                        <span className="text-xs">No image</span>
+                                        <span className="text-xs">Aucune image</span>
                                     </div>
                                 )}
                             </div>
@@ -129,12 +129,12 @@ export default function Show({ produit }: Props) {
                         {/* Stock status */}
                         <div className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
                             <div className="flex items-center justify-between mb-3">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Stock Level</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">Niveau de stock</p>
                                 <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold border ${si.cls}`}>{si.label}</span>
                             </div>
                             <div className="flex items-baseline gap-1 mb-2">
                                 <span className="text-3xl font-black text-slate-900">{produit.stock_quantity}</span>
-                                <span className="text-sm text-slate-400">units</span>
+                                <span className="text-sm text-slate-400">unités</span>
                             </div>
                             <div className="h-2 rounded-full bg-slate-100 overflow-hidden">
                                 <div className={`h-full rounded-full ${si.bar} transition-all`}
@@ -149,18 +149,18 @@ export default function Show({ produit }: Props) {
                         {/* Pricing cards */}
                         <div className="grid grid-cols-3 gap-4">
                             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Purchase</p>
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide mb-2">Prix d'achat</p>
                                 <p className="text-xl font-black text-slate-900">{Number(produit.purchase_price).toFixed(2)}</p>
                                 <p className="text-xs text-slate-400 mt-0.5">MAD</p>
                             </div>
                             <div className="rounded-2xl border border-blue-100 bg-blue-50 p-5 shadow-sm">
-                                <p className="text-xs font-bold text-blue-500 uppercase tracking-wide mb-2">Sale Price</p>
+                                <p className="text-xs font-bold text-blue-500 uppercase tracking-wide mb-2">Prix de vente</p>
                                 <p className="text-xl font-black text-blue-800">{Number(produit.sale_price).toFixed(2)}</p>
                                 <p className="text-xs text-blue-400 mt-0.5">MAD</p>
                             </div>
                             <div className={`rounded-2xl p-5 shadow-sm border ${margin >= 0 ? 'bg-green-50 border-green-100' : 'bg-red-50 border-red-100'}`}>
                                 <p className={`text-xs font-bold uppercase tracking-wide mb-2 ${margin >= 0 ? 'text-green-500' : 'text-red-500'}`}>
-                                    <TrendingUp className="inline h-3 w-3 mr-1" />Margin
+                                    <TrendingUp className="inline h-3 w-3 mr-1" />Marge
                                 </p>
                                 <p className={`text-xl font-black ${margin >= 0 ? 'text-green-800' : 'text-red-700'}`}>
                                     {margin >= 0 ? '+' : ''}{margin.toFixed(2)}
@@ -179,20 +179,20 @@ export default function Show({ produit }: Props) {
                             {produit.description ? (
                                 <p className="text-sm text-slate-600 leading-relaxed">{produit.description}</p>
                             ) : (
-                                <p className="text-sm text-slate-400 italic">No description provided.</p>
+                                <p className="text-sm text-slate-400 italic">Aucune description.</p>
                             )}
                         </div>
 
                         {/* Dates */}
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                             <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4 text-slate-400" /> Product Info
+                                <BarChart3 className="h-4 w-4 text-slate-400" /> Infos produit
                             </h3>
                             <div className="space-y-3">
                                 <div className="flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-2 text-slate-500">
                                         <Calendar className="h-4 w-4" />
-                                        <span>Created</span>
+                                        <span>Créé le</span>
                                     </div>
                                     <span className="font-medium text-slate-700">
                                         {new Date(produit.created_at).toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })}
@@ -201,7 +201,7 @@ export default function Show({ produit }: Props) {
                                 <div className="flex items-center justify-between text-sm">
                                     <div className="flex items-center gap-2 text-slate-500">
                                         <Clock className="h-4 w-4" />
-                                        <span>Last updated</span>
+                                        <span>Dernière mise à jour</span>
                                     </div>
                                     <span className="font-medium text-slate-700">
                                         {new Date(produit.updated_at).toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })}

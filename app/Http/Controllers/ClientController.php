@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -168,8 +169,8 @@ class ClientController extends Controller
      */
     public function history(Request $request, Client $client)
     {
-        $invoicesQuery  = $client->salesInvoices()->orderByDesc('invoice_date');
-        $returnsQuery   = $client->salesReturns()->with('invoice')->orderByDesc('return_date');
+        $invoicesQuery  = $client->salesInvoices()->with('items')->orderByDesc('invoice_date');
+        $returnsQuery   = $client->salesReturns()->with(['invoice', 'items'])->orderByDesc('return_date');
         $paymentsQuery  = $client->payments()->with(['salesInvoice', 'paymentMethod'])->orderByDesc('payment_date');
 
         if ($request->date_from) {
@@ -197,16 +198,24 @@ class ClientController extends Controller
                 'uuid'             => $inv->uuid,
                 'code'             => $inv->code,
                 'invoice_date'     => $inv->invoice_date,
+                'created_at'       => $inv->created_at?->toIso8601String(),
                 'total_amount'     => $inv->total_amount,
                 'paid_amount'      => $inv->paid_amount,
                 'remaining_amount' => $inv->remaining_amount,
                 'status'           => $inv->status,
                 'notes'            => $inv->notes,
+                'items'            => $inv->items->map(fn($item) => [
+                    'product_name' => $item->product_name,
+                    'quantity'     => $item->quantity,
+                    'unit_price'   => (float) $item->unit_price,
+                    'total_price'  => (float) $item->total_price,
+                ]),
             ]),
             'payments' => $paymentsQuery->get()->map(fn($p) => [
                 'uuid'           => $p->uuid,
                 'amount'         => $p->amount,
                 'payment_date'   => $p->payment_date,
+                'created_at'     => $p->created_at?->toIso8601String(),
                 'reference'      => $p->reference,
                 'payment_method' => $p->paymentMethod?->name,
                 'notes'          => $p->notes,
@@ -215,9 +224,16 @@ class ClientController extends Controller
             'salesReturns' => $returnsQuery->get()->map(fn($r) => [
                 'uuid'         => $r->uuid,
                 'return_date'  => $r->return_date,
+                'created_at'   => $r->created_at?->toIso8601String(),
                 'total_amount' => $r->total_amount,
                 'notes'        => $r->notes,
                 'invoice'      => $r->invoice ? ['uuid' => $r->invoice->uuid, 'code' => $r->invoice->code] : null,
+                'items'        => $r->items->map(fn($item) => [
+                    'product_name' => $item->product_name,
+                    'quantity'     => $item->quantity,
+                    'unit_price'   => (float) $item->unit_price,
+                    'total_price'  => (float) $item->total_price,
+                ]),
             ]),
             'stats' => [
                 'totalSales'    => $allInvoices->sum('total_amount'),
@@ -332,5 +348,77 @@ class ClientController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    public function historyPdf(Request $request, Client $client)
+    {
+        $invoicesQuery  = $client->salesInvoices()->with('items')->orderByDesc('invoice_date');
+        $returnsQuery   = $client->salesReturns()->with(['invoice', 'items'])->orderByDesc('return_date');
+        $paymentsQuery  = $client->payments()->with(['salesInvoice', 'paymentMethod'])->orderByDesc('payment_date');
+
+        if ($request->date_from) {
+            $invoicesQuery->where('invoice_date', '>=', $request->date_from);
+            $returnsQuery->where('return_date',   '>=', $request->date_from);
+            $paymentsQuery->where('payment_date', '>=', $request->date_from);
+        }
+        if ($request->date_to) {
+            $invoicesQuery->where('invoice_date', '<=', $request->date_to);
+            $returnsQuery->where('return_date',   '<=', $request->date_to);
+            $paymentsQuery->where('payment_date', '<=', $request->date_to);
+        }
+        if ($request->status && $request->status !== 'all') {
+            $invoicesQuery->where('status', $request->status);
+        }
+
+        $invoices = $invoicesQuery->get()->map(fn($inv) => [
+            'code'             => $inv->code,
+            'invoice_date'     => $inv->invoice_date,
+            'total_amount'     => (float) $inv->total_amount,
+            'paid_amount'      => (float) $inv->paid_amount,
+            'remaining_amount' => (float) $inv->remaining_amount,
+            'status'           => $inv->status,
+            'notes'            => $inv->notes,
+            'items'            => $inv->items->map(fn($i) => [
+                'product_name' => $i->product_name,
+                'quantity'     => $i->quantity,
+                'unit_price'   => (float) $i->unit_price,
+                'total_price'  => (float) $i->total_price,
+            ]),
+        ]);
+
+        $payments = $paymentsQuery->get()->map(fn($p) => [
+            'amount'         => (float) $p->amount,
+            'payment_date'   => $p->payment_date,
+            'reference'      => $p->reference,
+            'payment_method' => $p->paymentMethod?->name,
+            'notes'          => $p->notes,
+            'invoice_code'   => $p->salesInvoice?->code,
+        ]);
+
+        $returns = $returnsQuery->get()->map(fn($r) => [
+            'return_date'  => $r->return_date,
+            'total_amount' => (float) $r->total_amount,
+            'notes'        => $r->notes,
+            'invoice_code' => $r->invoice?->code,
+            'items'        => $r->items->map(fn($i) => [
+                'product_name' => $i->product_name,
+                'quantity'     => $i->quantity,
+                'unit_price'   => (float) $i->unit_price,
+                'total_price'  => (float) $i->total_price,
+            ]),
+        ]);
+
+        $company = config('company', []);
+        $totalInvoiced = $invoices->sum('total_amount');
+        $totalPaid     = $payments->sum('amount');
+        $totalReturned = $returns->sum('total_amount');
+        $balance       = $totalInvoiced - $totalPaid - $totalReturned;
+
+        $pdf = Pdf::loadView('clients.history_pdf', compact(
+            'client', 'invoices', 'payments', 'returns',
+            'company', 'totalInvoiced', 'totalPaid', 'totalReturned', 'balance'
+        ))->setPaper('a4', 'portrait');
+
+        return $pdf->download("historique-{$client->nom}.pdf");
     }
 }

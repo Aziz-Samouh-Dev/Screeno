@@ -16,8 +16,8 @@ import {
 } from 'lucide-react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Products', href: '/produits' },
-    { title: 'New Product', href: '/produits/create' },
+    { title: 'Produits', href: '/produits' },
+    { title: 'Nouveau produit', href: '/produits/create' },
 ];
 
 const formSchema = z.object({
@@ -67,7 +67,7 @@ export default function Create() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="New Product" />
+            <Head title="Nouveau produit" />
 
             <div className="flex flex-col gap-6 p-6">
 
@@ -77,8 +77,8 @@ export default function Create() {
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900">New Product</h1>
-                        <p className="text-sm text-slate-400">Add a product to your inventory</p>
+                        <h1 className="text-xl font-bold text-slate-900">Nouveau produit</h1>
+                        <p className="text-sm text-slate-400">Ajouter un produit à votre inventaire</p>
                     </div>
                 </div>
 
@@ -90,7 +90,7 @@ export default function Create() {
                         {/* Image upload */}
                         <div className="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm">
                             <h3 className="font-bold text-slate-800 mb-4 flex items-center gap-2">
-                                <Upload className="h-4 w-4 text-slate-400" /> Product Image
+                                <Upload className="h-4 w-4 text-slate-400" /> Image du produit
                             </h3>
                             <Controller control={form.control} name="image" render={({ field: { onChange } }) => (
                                 <label className="cursor-pointer block">
@@ -107,7 +107,7 @@ export default function Create() {
                                         ) : (
                                             <div className="text-center space-y-2 p-4">
                                                 <Upload className="h-8 w-8 text-slate-300 mx-auto" />
-                                                <p className="text-xs text-slate-400">Click to upload image</p>
+                                                <p className="text-xs text-slate-400">Cliquez pour télécharger</p>
                                                 <p className="text-xs text-slate-300">PNG, JPG, WEBP</p>
                                             </div>
                                         )}
@@ -123,19 +123,19 @@ export default function Create() {
                         {/* Margin preview */}
                         <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm space-y-3">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <TrendingUp className="h-4 w-4 text-slate-400" /> Margin Preview
+                                <TrendingUp className="h-4 w-4 text-slate-400" /> Aperçu marge
                             </h3>
                             <div className="space-y-2 text-sm">
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">Purchase</span>
+                                    <span className="text-slate-400">Achat</span>
                                     <span className="font-mono font-semibold">{Number(watchPurchase).toFixed(2)} MAD</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-slate-400">Sale</span>
+                                    <span className="text-slate-400">Vente</span>
                                     <span className="font-mono font-semibold">{Number(watchSale).toFixed(2)} MAD</span>
                                 </div>
                                 <div className="border-t pt-2 flex justify-between">
-                                    <span className="font-bold text-slate-700">Margin</span>
+                                    <span className="font-bold text-slate-700">Marge</span>
                                     <span className={`font-mono font-bold ${margin >= 0 ? 'text-green-600' : 'text-red-500'}`}>
                                         {margin >= 0 ? '+' : ''}{margin.toFixed(2)} MAD
                                         {Number(watchPurchase) > 0 && <span className="text-xs ml-1">({marginPct.toFixed(1)}%)</span>}
@@ -151,11 +151,11 @@ export default function Create() {
                         {/* Basic */}
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <Package className="h-4 w-4 text-slate-400" /> Basic Information
+                                <Package className="h-4 w-4 text-slate-400" /> Informations de base
                             </h3>
                             <Controller control={form.control} name="nom" render={({ field, fieldState }) => (
                                 <Field className="flex flex-col gap-1.5" data-invalid={fieldState.invalid}>
-                                    <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Product Name *</FieldLabel>
+                                    <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Nom du produit *</FieldLabel>
                                     <Input placeholder="e.g. Wireless Mouse" className="rounded-xl" {...field} />
                                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                                 </Field>
@@ -171,12 +171,12 @@ export default function Create() {
                         {/* Pricing */}
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <DollarSign className="h-4 w-4 text-slate-400" /> Pricing
+                                <DollarSign className="h-4 w-4 text-slate-400" /> Prix
                             </h3>
                             <div className="grid grid-cols-2 gap-4">
                                 <Controller control={form.control} name="purchase_price" render={({ field, fieldState }) => (
                                     <Field className="flex flex-col gap-1.5" data-invalid={fieldState.invalid}>
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Purchase Price *</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Prix d'achat *</FieldLabel>
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">MAD</span>
                                             <Input type="number" step="0.01" min="0" placeholder="0.00" className="rounded-xl pl-12" {...field} />
@@ -186,7 +186,7 @@ export default function Create() {
                                 )} />
                                 <Controller control={form.control} name="sale_price" render={({ field, fieldState }) => (
                                     <Field className="flex flex-col gap-1.5" data-invalid={fieldState.invalid}>
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Sale Price *</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Prix de vente *</FieldLabel>
                                         <div className="relative">
                                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">MAD</span>
                                             <Input type="number" step="0.01" min="0" placeholder="0.00" className="rounded-xl pl-12" {...field} />
@@ -200,11 +200,11 @@ export default function Create() {
                         {/* Stock */}
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                             <h3 className="font-bold text-slate-800 flex items-center gap-2">
-                                <BarChart3 className="h-4 w-4 text-slate-400" /> Inventory
+                                <BarChart3 className="h-4 w-4 text-slate-400" /> Stock
                             </h3>
                             <Controller control={form.control} name="stock_quantity" render={({ field, fieldState }) => (
                                 <Field className="flex flex-col gap-1.5 max-w-xs" data-invalid={fieldState.invalid}>
-                                    <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Initial Stock *</FieldLabel>
+                                    <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Stock initial *</FieldLabel>
                                     <Input type="number" min="0" placeholder="0" className="rounded-xl" {...field} />
                                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                                 </Field>
@@ -215,11 +215,11 @@ export default function Create() {
                         <div className="flex justify-end gap-3 pt-2">
                             <Button type="button" variant="outline" className="rounded-xl px-6"
                                 onClick={() => router.visit('/produits')} disabled={processing}>
-                                Cancel
+                                Annuler
                             </Button>
                             <Button type="submit" className="rounded-xl px-6" disabled={processing}>
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                                {processing ? 'Saving…' : 'Create Product'}
+                                {processing ? 'Enregistrement…' : 'Créer le produit'}
                             </Button>
                         </div>
                     </div>

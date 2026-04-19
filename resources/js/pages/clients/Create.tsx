@@ -14,13 +14,13 @@ import { ArrowLeft, User, Mail, Phone, MapPin, FileText, CheckCircle2 } from 'lu
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Clients', href: '/clients' },
-    { title: 'New Client', href: '/clients/create' },
+    { title: 'Nouveau client', href: '/clients/create' },
 ];
 
 const formSchema = z.object({
-    nom:       z.string().min(1, { message: 'Name is required' }),
-    email:     z.string().email({ message: 'Invalid email' }).optional().or(z.literal('')),
-    telephone: z.string().min(1, { message: 'Phone is required' }).regex(/^[0-9+\-\s]+$/, { message: 'Invalid phone' }),
+    nom:       z.string().min(1, { message: 'Le nom est requis' }),
+    email:     z.string().email({ message: 'E-mail invalide' }).optional().or(z.literal('')),
+    telephone: z.string().min(1, { message: 'Le téléphone est requis' }).regex(/^[0-9+\-\s]+$/, { message: 'Téléphone invalide' }),
     adresse:   z.string().optional(),
     ville:     z.string().optional(),
     notes:     z.string().optional(),
@@ -51,7 +51,7 @@ export default function Create() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="New Client" />
+            <Head title="Nouveau client" />
 
             <div className="flex flex-col gap-6 p-6">
 
@@ -61,8 +61,8 @@ export default function Create() {
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900">New Client</h1>
-                        <p className="text-sm text-slate-400">Add a new customer to your CRM</p>
+                        <h1 className="text-xl font-bold text-slate-900">Nouveau client</h1>
+                        <p className="text-sm text-slate-400">Ajouter un nouveau client à votre CRM</p>
                     </div>
                 </div>
 
@@ -90,10 +90,10 @@ export default function Create() {
 
                         {/* Tips */}
                         <div className="rounded-2xl border border-blue-100 bg-blue-50 p-4 text-xs text-blue-700 space-y-2">
-                            <p className="font-bold">Quick tips</p>
-                            <p>• Name and Phone are required fields.</p>
-                            <p>• Email must be unique across all clients.</p>
-                            <p>• You can add invoices after saving.</p>
+                            <p className="font-bold">Conseils</p>
+                            <p>• Le nom et le téléphone sont obligatoires.</p>
+                            <p>• L'e-mail doit être unique parmi les clients.</p>
+                            <p>• Vous pouvez ajouter des factures après enregistrement.</p>
                         </div>
                     </div>
 
@@ -104,13 +104,13 @@ export default function Create() {
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                             <div className="flex items-center gap-2 mb-1">
                                 <User className="h-4 w-4 text-slate-400" />
-                                <h3 className="font-bold text-slate-800">Basic Information</h3>
+                                <h3 className="font-bold text-slate-800">Informations de base</h3>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Controller control={form.control} name="nom" render={({ field, fieldState }) => (
                                     <Field className="flex flex-col gap-1.5" data-invalid={fieldState.invalid}>
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Full Name *</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Nom complet *</FieldLabel>
                                         <Input placeholder="e.g. John Doe" className="rounded-xl" {...field} />
                                         {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                                         {serverErrors.nom && <p className="text-xs text-red-500">{serverErrors.nom}</p>}
@@ -119,12 +119,12 @@ export default function Create() {
 
                                 <Controller control={form.control} name="status" render={({ field }) => (
                                     <Field className="flex flex-col gap-1.5">
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Status</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Statut</FieldLabel>
                                         <Select value={field.value} onValueChange={field.onChange}>
                                             <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="active">Active</SelectItem>
-                                                <SelectItem value="inactive">Inactive</SelectItem>
+                                                <SelectItem value="active">Actif</SelectItem>
+                                                <SelectItem value="inactive">Inactif</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </Field>
@@ -136,7 +136,7 @@ export default function Create() {
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                             <div className="flex items-center gap-2 mb-1">
                                 <Mail className="h-4 w-4 text-slate-400" />
-                                <h3 className="font-bold text-slate-800">Contact Details</h3>
+                                <h3 className="font-bold text-slate-800">Coordonnées</h3>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -151,7 +151,7 @@ export default function Create() {
 
                                 <Controller control={form.control} name="telephone" render={({ field, fieldState }) => (
                                     <Field className="flex flex-col gap-1.5" data-invalid={fieldState.invalid}>
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Phone *</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Téléphone *</FieldLabel>
                                         <Input type="tel" placeholder="0600000000" className="rounded-xl" {...field}
                                             onInput={(e: React.FormEvent<HTMLInputElement>) => {
                                                 const t = e.target as HTMLInputElement;
@@ -169,20 +169,20 @@ export default function Create() {
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                             <div className="flex items-center gap-2 mb-1">
                                 <MapPin className="h-4 w-4 text-slate-400" />
-                                <h3 className="font-bold text-slate-800">Location</h3>
+                                <h3 className="font-bold text-slate-800">Localisation</h3>
                             </div>
 
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Controller control={form.control} name="ville" render={({ field }) => (
                                     <Field className="flex flex-col gap-1.5">
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">City</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Ville</FieldLabel>
                                         <Input placeholder="Casablanca" className="rounded-xl" {...field} />
                                     </Field>
                                 )} />
 
                                 <Controller control={form.control} name="adresse" render={({ field }) => (
                                     <Field className="sm:col-span-1 flex flex-col gap-1.5">
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Address</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Adresse</FieldLabel>
                                         <Input placeholder="Street, building…" className="rounded-xl" {...field} />
                                     </Field>
                                 )} />
@@ -208,11 +208,11 @@ export default function Create() {
                         <div className="flex justify-end gap-3 pt-2">
                             <Button type="button" variant="outline" className="rounded-xl px-6"
                                 onClick={() => router.visit('/clients')} disabled={processing}>
-                                Cancel
+                                Annuler
                             </Button>
                             <Button type="submit" className="rounded-xl px-6" disabled={processing}>
                                 <CheckCircle2 className="mr-2 h-4 w-4" />
-                                {processing ? 'Saving…' : 'Create Client'}
+                                {processing ? 'Enregistrement…' : 'Créer le client'}
                             </Button>
                         </div>
                     </div>

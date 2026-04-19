@@ -1,62 +1,53 @@
-"use client"
-
 import { Head, router } from '@inertiajs/react';
-import InvoiceForm, {
-    InvoiceFormValues,
-    Supplier,
-    Product,
-} from "@/components/PurchaseInvoices/invoice-form"
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import InvoiceForm, { type InvoiceFormValues, type Supplier, type Product } from '@/components/PurchaseInvoices/invoice-form';
 
+interface Props { suppliers: Supplier[]; products: Product[] }
 
-interface Props {
-    suppliers: Supplier[]
-    products: Product[]
-}
+const breadcrumbs: BreadcrumbItem[] = [
+    { title: "Factures d'achat", href: '/purchase_invoices' },
+    { title: 'Nouvelle facture', href: '/purchase_invoices/create' },
+];
 
 export default function Create({ suppliers, products }: Props) {
-
-    const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Purchase Invoices', href: '/purchase_invoices' },
-        { title: "Create", href: '/purchase_invoices/create' },
-    ];
-
     const defaultValues: InvoiceFormValues = {
-        supplier_id: suppliers[0]?.id ?? undefined,
+        supplier_id:  suppliers[0]?.id ?? undefined,
         invoice_date: new Date().toISOString().slice(0, 10),
-        items: [],
-    }
-
-    const handleSubmit = (data: InvoiceFormValues) => {
-        router.post("/purchase_invoices", data as any)
-    }
+        items:        [],
+    };
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Create Purchase Invoice" />
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
-                <div className="relative overflow-hidden rounded-xl border">
-                    <div className="px-8 py-6 border-b border-slate-100 flex justify-between items-center bg-slate-50/50">
-                        <div>
-                            <h2 className="text-xl font-bold text-slate-900">Create Purchase Invoice</h2>
-                            <p className="text-slate-500 text-xs mt-1">Record a new purchase from your supplier.</p>
-                        </div>
+            <Head title="New Purchase Invoice" />
 
+            <div className="flex flex-col gap-6 p-6">
+
+                <div className="flex items-center gap-3">
+                    <Button variant="ghost" size="icon" className="rounded-xl"
+                        onClick={() => router.visit('/purchase_invoices')}>
+                        <ArrowLeft className="h-4 w-4" />
+                    </Button>
+                    <div>
+                        <h1 className="text-xl font-bold text-slate-900">New Purchase Invoice</h1>
+                        <p className="text-sm text-slate-400">Record a purchase from your supplier</p>
                     </div>
+                </div>
 
-                    <div className='px-8 py-6'>
-
+                <div className="rounded-3xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div className="px-8 py-6">
                         <InvoiceForm
                             suppliers={suppliers}
                             products={products}
                             defaultValues={defaultValues}
-                            onSubmit={handleSubmit}
+                            onSubmit={(data) => router.post('/purchase_invoices', data as any)}
                         />
                     </div>
-
                 </div>
+
             </div>
         </AppLayout>
-    )
+    );
 }

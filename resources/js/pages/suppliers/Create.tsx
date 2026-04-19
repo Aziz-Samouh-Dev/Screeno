@@ -13,17 +13,17 @@ import { useForm, Controller } from 'react-hook-form';
 import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
-  { title: 'Suppliers', href: '/suppliers' },
-  { title: 'Create new supplier', href: '/suppliers/create' },
+  { title: 'Fournisseurs', href: '/suppliers' },
+  { title: 'Nouveau fournisseur', href: '/suppliers/create' },
 ];
 
 const formSchema = z.object({
-  nom: z.string().min(1, { message: 'Supplier name is required' }),
+  nom: z.string().min(1, { message: 'Le nom du fournisseur est requis' }),
   email: z.string().email().optional(),
   telephone: z
     .string()
-    .min(1, { message: 'Phone is required' })
-    .regex(/^[0-9]+$/, { message: 'Phone must contain only numbers' }),
+    .min(1, { message: 'Le téléphone est requis' })
+    .regex(/^[0-9]+$/, { message: 'Le téléphone ne doit contenir que des chiffres' }),
   adresse: z.string().optional(),
   ville: z.string().optional(),
   notes: z.string().optional(),
@@ -65,7 +65,7 @@ export default function CreateSupplier() {
 
   return (
     <AppLayout breadcrumbs={breadcrumbs}>
-      <Head title="Create Supplier" />
+      <Head title="Nouveau fournisseur" />
 
       <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
         <div className="relative overflow-hidden rounded-xl border p-6">
@@ -79,9 +79,9 @@ export default function CreateSupplier() {
               {/* Header */}
               <div className="col-span-12">
                 <p className="leading-7">
-                  <span className="text-lg font-semibold">Supplier Information</span><br />
+                  <span className="text-lg font-semibold">Informations du fournisseur</span><br />
                   <span className="text-sm text-muted-foreground">
-                    Add a new supplier to your system.
+                    Ajouter un nouveau fournisseur au système.
                   </span>
                 </p>
               </div>
@@ -92,8 +92,8 @@ export default function CreateSupplier() {
                 name="nom"
                 render={({ field, fieldState }) => (
                   <Field className="col-span-12 lg:col-span-6 flex flex-col gap-2" data-invalid={fieldState.invalid}>
-                    <FieldLabel>Full Name *</FieldLabel>
-                    <Input placeholder="Supplier Name" {...field} />
+                    <FieldLabel>Nom complet *</FieldLabel>
+                    <Input placeholder="Nom du fournisseur" {...field} />
                     {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                   </Field>
                 )}
@@ -121,10 +121,10 @@ export default function CreateSupplier() {
                     className="col-span-12 lg:col-span-6 flex flex-col gap-2"
                     data-invalid={fieldState.invalid}
                   >
-                    <FieldLabel>Phone *</FieldLabel>
+                    <FieldLabel>Téléphone *</FieldLabel>
                     <Input
                       type="tel"
-                      placeholder="Enter phone number"
+                      placeholder="0600000000"
                       {...field}
                       onInput={(e: React.FormEvent<HTMLInputElement>) => {
                         const target = e.target as HTMLInputElement;
@@ -143,14 +143,14 @@ export default function CreateSupplier() {
                 name="status"
                 render={({ field }) => (
                   <Field className="col-span-12 lg:col-span-6 flex flex-col gap-2">
-                    <FieldLabel>Status</FieldLabel>
+                    <FieldLabel>Statut</FieldLabel>
                     <Select value={field.value} onValueChange={field.onChange}>
                       <SelectTrigger>
-                        <SelectValue placeholder="Select status" />
+                        <SelectValue placeholder="Choisir un statut" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="active">Active</SelectItem>
-                        <SelectItem value="inactive">Inactive</SelectItem>
+                        <SelectItem value="active">Actif</SelectItem>
+                        <SelectItem value="inactive">Inactif</SelectItem>
                       </SelectContent>
                     </Select>
                   </Field>
@@ -163,8 +163,8 @@ export default function CreateSupplier() {
                 name="adresse"
                 render={({ field }) => (
                   <Field className="col-span-12 flex flex-col gap-2">
-                    <FieldLabel>Address</FieldLabel>
-                    <Textarea className="h-20" placeholder="Street, building..." {...field} />
+                    <FieldLabel>Adresse</FieldLabel>
+                    <Textarea className="h-20" placeholder="Rue, bâtiment..." {...field} />
                   </Field>
                 )}
               />
@@ -175,7 +175,7 @@ export default function CreateSupplier() {
                 name="ville"
                 render={({ field }) => (
                   <Field className="col-span-12 lg:col-span-6 flex flex-col gap-2">
-                    <FieldLabel>City</FieldLabel>
+                    <FieldLabel>Ville</FieldLabel>
                     <Input placeholder="Casablanca" {...field} />
                   </Field>
                 )}
@@ -204,7 +204,7 @@ export default function CreateSupplier() {
                   disabled={processing}
                   className="w-full sm:w-40"
                 >
-                  Cancel
+                  Annuler
                 </Button>
 
                 <Button
@@ -212,7 +212,7 @@ export default function CreateSupplier() {
                   disabled={processing}
                   className="w-full sm:w-40"
                 >
-                  {processing ? 'Creating...' : 'Create Supplier'}
+                  {processing ? 'Enregistrement...' : 'Créer le fournisseur'}
                 </Button>
               </div>
 

@@ -32,7 +32,7 @@ export default function Edit() {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Clients', href: '/clients' },
         { title: client.nom, href: `/clients/${client.uuid}` },
-        { title: 'Edit', href: `/clients/${client.uuid}/edit` },
+        { title: 'Modifier', href: `/clients/${client.uuid}/edit` },
     ];
 
     const form = useForm<FormValues>({
@@ -83,12 +83,12 @@ export default function Edit() {
                             <ArrowLeft className="h-4 w-4" />
                         </Button>
                         <div>
-                            <h1 className="text-xl font-bold text-slate-900">Edit Client</h1>
-                            <p className="text-sm text-slate-400">Update {client.nom}'s information</p>
+                            <h1 className="text-xl font-bold text-slate-900">Modifier le client</h1>
+                            <p className="text-sm text-slate-400">Modifier les informations de {client.nom}</p>
                         </div>
                     </div>
                     <Button variant="outline" className="rounded-xl" onClick={() => router.visit(`/clients/${client.uuid}`)}>
-                        <Eye className="mr-2 h-4 w-4" /> View Profile
+                        <Eye className="mr-2 h-4 w-4" /> Voir le profil
                     </Button>
                 </div>
 
@@ -131,12 +131,12 @@ export default function Edit() {
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                             <div className="flex items-center gap-2 mb-1">
                                 <User className="h-4 w-4 text-slate-400" />
-                                <h3 className="font-bold text-slate-800">Basic Information</h3>
+                                <h3 className="font-bold text-slate-800">Informations de base</h3>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Controller control={form.control} name="nom" render={({ field, fieldState }) => (
                                     <Field className="flex flex-col gap-1.5" data-invalid={fieldState.invalid}>
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Full Name *</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Nom complet *</FieldLabel>
                                         <Input placeholder="John Doe" className="rounded-xl" {...field} />
                                         {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                                         {serverErrors.nom && <p className="text-xs text-red-500">{serverErrors.nom}</p>}
@@ -145,12 +145,12 @@ export default function Edit() {
 
                                 <Controller control={form.control} name="status" render={({ field }) => (
                                     <Field className="flex flex-col gap-1.5">
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Status</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Statut</FieldLabel>
                                         <Select value={field.value} onValueChange={field.onChange}>
                                             <SelectTrigger className="rounded-xl"><SelectValue /></SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="active">Active</SelectItem>
-                                                <SelectItem value="inactive">Inactive</SelectItem>
+                                                <SelectItem value="active">Actif</SelectItem>
+                                                <SelectItem value="inactive">Inactif</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </Field>
@@ -162,7 +162,7 @@ export default function Edit() {
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                             <div className="flex items-center gap-2 mb-1">
                                 <Mail className="h-4 w-4 text-slate-400" />
-                                <h3 className="font-bold text-slate-800">Contact Details</h3>
+                                <h3 className="font-bold text-slate-800">Coordonnées</h3>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Controller control={form.control} name="email" render={({ field, fieldState }) => (
@@ -176,7 +176,7 @@ export default function Edit() {
 
                                 <Controller control={form.control} name="telephone" render={({ field, fieldState }) => (
                                     <Field className="flex flex-col gap-1.5" data-invalid={fieldState.invalid}>
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Phone *</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Téléphone *</FieldLabel>
                                         <Input type="tel" placeholder="0600000000" className="rounded-xl" {...field}
                                             onInput={(e: React.FormEvent<HTMLInputElement>) => {
                                                 const t = e.target as HTMLInputElement;
@@ -194,19 +194,19 @@ export default function Edit() {
                         <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm space-y-5">
                             <div className="flex items-center gap-2 mb-1">
                                 <MapPin className="h-4 w-4 text-slate-400" />
-                                <h3 className="font-bold text-slate-800">Location</h3>
+                                <h3 className="font-bold text-slate-800">Localisation</h3>
                             </div>
                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <Controller control={form.control} name="ville" render={({ field }) => (
                                     <Field className="flex flex-col gap-1.5">
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">City</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Ville</FieldLabel>
                                         <Input placeholder="Casablanca" className="rounded-xl" {...field} />
                                     </Field>
                                 )} />
 
                                 <Controller control={form.control} name="adresse" render={({ field }) => (
                                     <Field className="flex flex-col gap-1.5">
-                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Address</FieldLabel>
+                                        <FieldLabel className="text-xs font-bold text-slate-500 uppercase tracking-wide">Adresse</FieldLabel>
                                         <Input placeholder="Street, building…" className="rounded-xl" {...field} />
                                     </Field>
                                 )} />
@@ -228,11 +228,11 @@ export default function Edit() {
                         <div className="flex justify-end gap-3 pt-2">
                             <Button type="button" variant="outline" className="rounded-xl px-6"
                                 onClick={() => router.visit(`/clients/${client.uuid}`)} disabled={processing}>
-                                Cancel
+                                Annuler
                             </Button>
                             <Button type="submit" className="rounded-xl px-6" disabled={processing}>
                                 <Save className="mr-2 h-4 w-4" />
-                                {processing ? 'Saving…' : 'Save Changes'}
+                                {processing ? 'Enregistrement…' : 'Enregistrer'}
                             </Button>
                         </div>
 

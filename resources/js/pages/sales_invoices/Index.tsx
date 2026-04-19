@@ -1,425 +1,236 @@
 import { useState, useEffect, ReactNode } from 'react';
-import { Head, Link, usePage, router } from '@inertiajs/react';
+import { Head, router, usePage } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
-
-import {
-    MoreHorizontalIcon,
-    ChevronLeft,
-    ChevronRight,
-    Plus,
-    Search,
-    Filter,
-} from "lucide-react"
-
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
 import {
-    DropdownMenu,
-    DropdownMenuContent,
-    DropdownMenuItem,
-    DropdownMenuSeparator,
-    DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-
-import {
-    Table,
-    TableBody,
-    TableCell,
-    TableHead,
-    TableHeader,
-    TableRow,
-} from "@/components/ui/table"
-
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-
-import { Checkbox } from '@/components/ui/checkbox';
-
-const breadcrumbs: BreadcrumbItem[] = [
-    { title: 'Sales Invoices', href: '/sales_invoices' },
-];
-
-interface Client {
-    uuid: string;
-    nom: string;
-}
-
-interface InvoiceItem {
-    id: number;
-    product_name: string;
-    quantity: number;
-    total_price: number;
-}
+    Plus, Search, FileText, TrendingUp, AlertCircle, CheckCircle2,
+    ChevronLeft, ChevronRight, Eye, Edit2, Trash2,
+} from 'lucide-react';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { ConfirmDialog, useConfirmDialog } from '@/components/ui/confirm-dialog';
 
 interface SalesInvoice {
-    code: string;
-    uuid: string;
-    client: Client;
-    invoice_date: string;
-    total_amount: number;
-    paid_amount: number;
+    uuid:             string;
+    code:             string;
+    invoice_date:     string;
+    total_amount:     number;
+    paid_amount:      number;
     remaining_amount: number;
-    status: 'unpaid' | 'partial' | 'paid';
-    items?: InvoiceItem[];
+    status:           'paid' | 'partial' | 'unpaid';
+    client:           { uuid: string; nom: string };
 }
-
 interface PaginatedData {
-    total: ReactNode;
-    data: SalesInvoice[];
+    data:         SalesInvoice[];
+    total:        ReactNode;
     current_page: number;
-    last_page: number;
+    last_page:    number;
 }
-
 interface Props {
     salesInvoices: PaginatedData;
-    filters: {
-        search: string;
-        status: string;
-        per_page: string;
-    };
+    filters: { search: string; status: string; per_page: string };
 }
 
-export default function Index() {
+function statusBadge(s: string) {
+    if (s === 'paid')    return { cls: 'bg-green-50 text-green-700 border-green-200', dot: 'bg-green-500',  label: 'Payée'    };
+    if (s === 'partial') return { cls: 'bg-amber-50 text-amber-700 border-amber-200', dot: 'bg-amber-500',  label: 'Partielle' };
+    return                      { cls: 'bg-red-50   text-red-700   border-red-200',   dot: 'bg-red-500',    label: 'Impayée'  };
+}
 
+function fmt(n: number) { return Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2 }); }
+
+const breadcrumbs: BreadcrumbItem[] = [{ title: 'Factures de vente', href: '/sales_invoices' }];
+
+export default function Index() {
     const { salesInvoices, filters } = usePage().props as unknown as Props;
 
+    const [search,     setSearch]     = useState(filters.search  || '');
+    const [status,     setStatus]     = useState(filters.status  || 'all');
+    const [perPage,    setPerPage]    = useState(filters.per_page ?? '10');
     const [processing, setProcessing] = useState(false);
 
-    const [search, setSearch] = useState(filters.search || '');
-    const [status, setStatus] = useState(filters.status || 'all');
-    const [perPage, setPerPage] = useState<string>(filters?.per_page ?? '5');
+    const { confirmState, confirm, closeConfirm } = useConfirmDialog();
 
-    const [selectedInvoices, setSelectedInvoices] = useState<string[]>([]);
+    useEffect(() => {
+        const t = setTimeout(() => {
+            router.get('/sales_invoices', {
+                search, status: status === 'all' ? undefined : status, per_page: perPage,
+            }, { preserveState: true, preserveScroll: true, replace: true });
+        }, 350);
+        return () => clearTimeout(t);
+    }, [search, status, perPage]);
 
-    const [sort, setSort] = useState('');
-
-    /* ================= SORT ================= */
-
-    const handleSort = (field: string) => {
-        let direction = sort === `${field}_asc` ? 'desc' : 'asc';
-        const newSort = `${field}_${direction}`;
-        setSort(newSort);
-
-        router.get('/sales_invoices', {
-            search,
-            status: status === 'all' ? undefined : status,
-            sort: newSort,
-            per_page: perPage,
-        }, {
-            preserveState: true,
-            preserveScroll: true,
-            replace: true,
+    const handleDelete = (uuid: string, code: string) => {
+        confirm({
+            title: 'Supprimer cette facture ?',
+            description: `La facture « ${code} » sera définitivement supprimée. Cette action est irréversible.`,
+            onConfirm: () => {
+                setProcessing(true);
+                router.delete(`/sales_invoices/${uuid}`, {
+                    onSuccess: () => toast.success("Facture supprimée."),
+                    onFinish:  () => { setProcessing(false); closeConfirm(); },
+                });
+            },
         });
     };
 
-    /* ================= FILTER ================= */
-
-    useEffect(() => {
-        const timeout = setTimeout(() => {
-            router.get('/sales_invoices', {
-                search,
-                status: status === 'all' ? undefined : status,
-                sort,
-                per_page: perPage,
-            }, {
-                preserveState: true,
-                preserveScroll: true,
-                replace: true,
-            });
-        }, 400);
-
-        return () => clearTimeout(timeout);
-
-    }, [search, status, sort, perPage]);
-
-
-    /* ================= DELETE ================= */
-
-    const handleDelete = (uuid: string) => {
-        if (confirm('Are you sure?')) {
-            router.delete(`/sales_invoices/${uuid}`, {
-                onStart: () => setProcessing(true),
-                onFinish: () => setProcessing(false),
-            });
-        }
-    };
-
-    /* ================= SELECT ================= */
-
-    const toggleSelect = (uuid: string) => {
-        setSelectedInvoices(prev =>
-            prev.includes(uuid)
-                ? prev.filter(id => id !== uuid)
-                : [...prev, uuid]
-        );
-    };
-
-    const selectAll = () => {
-        if (selectedInvoices.length === salesInvoices.data.length) {
-            setSelectedInvoices([]);
-        } else {
-            setSelectedInvoices(salesInvoices.data.map(c => c.uuid));
-        }
-    };
-
-    const handleBulkDelete = () => {
-        if (selectedInvoices.length === 0) return;
-
-        if (confirm(`Delete ${selectedInvoices.length} invoices?`)) {
-            setProcessing(true);
-            router.post('/sales_invoices/bulk-delete', {
-                uuids: selectedInvoices
-            }, {
-                onFinish: () => {
-                    setProcessing(false);
-                    setSelectedInvoices([]);
-                }
-            });
-        }
-    };
-
-    /* ================= STATUS BADGE ================= */
-
-    const getStatusBadge = (status: string) => {
-        switch (status) {
-            case 'paid':
-                return 'bg-green-100 text-green-700';
-            case 'partial':
-                return 'bg-yellow-100 text-yellow-700';
-            case 'unpaid':
-                return 'bg-red-100 text-red-700';
-        }
-    };
+    const total   = salesInvoices.data.reduce((s, i) => s + Number(i.total_amount), 0);
+    const paid    = salesInvoices.data.reduce((s, i) => s + Number(i.paid_amount), 0);
+    const balance = salesInvoices.data.reduce((s, i) => s + Number(i.remaining_amount), 0);
+    const unpaid  = salesInvoices.data.filter(i => i.status !== 'paid').length;
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Sales Invoices" />
+            <Head title="Factures de vente" />
 
-            <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
+            <ConfirmDialog
+                open={confirmState.open}
+                onOpenChange={closeConfirm}
+                title={confirmState.title}
+                description={confirmState.description}
+                onConfirm={confirmState.onConfirm}
+                loading={processing}
+            />
 
-                {/* HEADER */}
-                <div className="flex flex-row justify-between items-start sm:items-center gap-4 py-2">
+            <div className="flex flex-col gap-6 p-6">
+
+                <div className="flex items-center justify-between">
                     <div>
-                        <h2 className="text-2xl font-bold tracking-tight">Sales Invoices</h2>
-                        <p className="text-sm">Manage your sales invoices</p>
+                        <h1 className="text-xl font-bold text-slate-900">Factures de vente</h1>
+                        <p className="text-sm text-slate-400">Gérez les factures clients et les paiements</p>
                     </div>
-
-                    <Link href="/sales_invoices/create">
-                        <Button>
-                            <Plus /> Add Invoice
-                        </Button>
-                    </Link>
+                    <Button className="rounded-xl" onClick={() => router.visit('/sales_invoices/create')}>
+                        <Plus className="mr-2 h-4 w-4" /> Nouvelle facture
+                    </Button>
                 </div>
 
-                {/* FILTER BAR */}
-                <div className="relative grid gap-5 overflow-hidden rounded-xl md:min-h-min space-y-4 border p-6">
-                    <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-                        {/* SEARCH */}
-                        <div className="relative flex-1">
-                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4" />
-                            <Input
-                                type="text"
-                                placeholder="Search by client or UUID..."
-                                className="pl-10"
-                                value={search}
-                                onChange={(e) => setSearch(e.target.value)}
-                            />
+                {/* STAT CARDS */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    {[
+                        { label: 'Total (page)',  value: `${fmt(total)} MAD`,   icon: FileText,     bg: 'bg-blue-50',   ic: 'text-blue-500'   },
+                        { label: 'Encaissé',      value: `${fmt(paid)} MAD`,    icon: CheckCircle2, bg: 'bg-green-50',  ic: 'text-green-500'  },
+                        { label: 'En attente',    value: `${fmt(balance)} MAD`, icon: TrendingUp,   bg: 'bg-amber-50',  ic: 'text-amber-500'  },
+                        { label: 'Non soldées',   value: `${unpaid} fact.`,     icon: AlertCircle,  bg: 'bg-red-50',    ic: 'text-red-500'    },
+                    ].map((c) => (
+                        <div key={c.label} className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                            <div className="flex items-center justify-between mb-2">
+                                <p className="text-xs font-bold text-slate-400 uppercase tracking-wide">{c.label}</p>
+                                <div className={`rounded-lg ${c.bg} p-1.5`}><c.icon className={`h-3.5 w-3.5 ${c.ic}`} /></div>
+                            </div>
+                            <p className="text-lg font-black text-slate-900">{c.value}</p>
                         </div>
+                    ))}
+                </div>
 
-                        <div className="flex items-center gap-2">
-                            {selectedInvoices.length > 0 && (
-                                <Button
-                                    variant="destructive"
-                                    onClick={handleBulkDelete}
-                                    disabled={processing}
-                                >
-                                    Delete {selectedInvoices.length}
-                                </Button>
-                            )}
-
-                            {/* STATUS */}
-                            <Select value={status} onValueChange={setStatus}>
-                                <SelectTrigger className="space-x-2">
-                                    <Filter className="w-4 h-4" />
-                                    <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                    <SelectItem value="all">All Status</SelectItem>
-                                    <SelectItem value="paid">Paid</SelectItem>
-                                    <SelectItem value="partial">Partial</SelectItem>
-                                    <SelectItem value="unpaid">Unpaid</SelectItem>
-                                </SelectContent>
-                            </Select>
+                {/* TABLE CARD */}
+                <div className="rounded-2xl border border-slate-200 bg-white shadow-sm overflow-hidden">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 border-b border-slate-100">
+                        <div className="relative flex-1 max-w-xs">
+                            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-slate-400" />
+                            <Input placeholder="Rechercher client ou code…" className="pl-9 rounded-xl h-9"
+                                value={search} onChange={e => setSearch(e.target.value)} />
                         </div>
+                        <Select value={status} onValueChange={setStatus}>
+                            <SelectTrigger className="rounded-xl h-9 w-40"><SelectValue /></SelectTrigger>
+                            <SelectContent>
+                                <SelectItem value="all">Tous les statuts</SelectItem>
+                                <SelectItem value="paid">Payée</SelectItem>
+                                <SelectItem value="partial">Partielle</SelectItem>
+                                <SelectItem value="unpaid">Impayée</SelectItem>
+                            </SelectContent>
+                        </Select>
                     </div>
 
-                    {/* TABLE */}
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                {/* Select All Checkbox */}
-                                <TableHead>
-                                    <Checkbox
-                                        checked={selectedInvoices.length === salesInvoices.data.length && salesInvoices.data.length > 0}
-                                        onCheckedChange={selectAll}
-                                    />
-                                </TableHead>
-                                <TableHead>Code</TableHead>
-                                <TableHead>Client</TableHead>
-                                <TableHead>Date</TableHead>
-                                <TableHead>Total</TableHead>
-                                <TableHead>Paid</TableHead>
-                                <TableHead>Balance</TableHead>
-                                <TableHead>Status</TableHead>
-                                <TableHead className="text-center">Actions</TableHead>
-                            </TableRow>
-                        </TableHeader>
-
-                        <TableBody>
-                            {salesInvoices.data.map(invoice => (
-                                <TableRow key={invoice.uuid}>
-                                    {/* Select Checkbox for Individual Row */}
-                                    <TableCell>
-                                        <Checkbox
-                                            checked={selectedInvoices.includes(invoice.uuid)}
-                                            onCheckedChange={() => toggleSelect(invoice.uuid)}
-                                        />
-                                    </TableCell>
-
-                                    {/* Invoice Code - Clickable */}
-                                    <TableCell>
-                                        <Button
-                                            variant="link"
-                                            className="p-0 h-auto"
-                                            onClick={() => router.visit(`/sales_invoices/${invoice.uuid}`)}
-                                        >
-                                            {invoice.code}
-                                        </Button>
-                                    </TableCell>
-
-                                    {/* Supplier Name - Clickable */}
-                                    <TableCell>
-                                        <Button
-                                            variant="link"
-                                            className="p-0 h-auto"
-                                            onClick={() => router.visit(`/clients/${invoice.client.uuid}`)}
-                                        >
-                                            {invoice.client.nom}
-                                        </Button>
-                                    </TableCell>
-
-                                    {/* Other Columns */}
-                                    <TableCell>{invoice.invoice_date}</TableCell>
-                                    <TableCell>{invoice.total_amount}</TableCell>
-                                    <TableCell>{invoice.paid_amount}</TableCell>
-                                    <TableCell>{invoice.remaining_amount}</TableCell>
-                                    <TableCell>
-                                        <span className={`px-2 py-1 text-xs rounded ${getStatusBadge(invoice.status)}`}>
-                                            {invoice.status}
-                                        </span>
-                                    </TableCell>
-
-                                    {/* Actions */}
-                                    <TableCell className="text-right">
-                                        <DropdownMenu>
-                                            <DropdownMenuTrigger asChild>
-                                                <Button variant="ghost" size="icon">
-                                                    <MoreHorizontalIcon />
-                                                </Button>
-                                            </DropdownMenuTrigger>
-                                            <DropdownMenuContent align="end">
-                                                <DropdownMenuItem onClick={() => router.visit(`/sales_invoices/${invoice.uuid}`)}>
-                                                    View
-                                                </DropdownMenuItem>
-                                                <DropdownMenuItem onClick={() => router.visit(`/sales_invoices/${invoice.uuid}/edit`)}>
-                                                    Edit
-                                                </DropdownMenuItem>
-                                                <DropdownMenuSeparator />
-                                                <DropdownMenuItem variant="destructive" onClick={() => handleDelete(invoice.uuid)}>
-                                                    Delete
-                                                </DropdownMenuItem>
-                                            </DropdownMenuContent>
-                                        </DropdownMenu>
-                                    </TableCell>
+                    <div className="overflow-x-auto">
+                        <Table>
+                            <TableHeader>
+                                <TableRow className="bg-slate-50/50">
+                                    <TableHead>Code</TableHead>
+                                    <TableHead>Client</TableHead>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead className="text-right">Total</TableHead>
+                                    <TableHead className="text-right">Payé</TableHead>
+                                    <TableHead className="text-right">Solde</TableHead>
+                                    <TableHead>Statut</TableHead>
+                                    <TableHead className="w-28 text-center">Actions</TableHead>
                                 </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
+                            </TableHeader>
+                            <TableBody>
+                                {salesInvoices.data.length === 0 ? (
+                                    <TableRow>
+                                        <TableCell colSpan={8} className="py-16 text-center text-slate-400">
+                                            <FileText className="h-8 w-8 mx-auto mb-2 opacity-30" />
+                                            Aucune facture trouvée
+                                        </TableCell>
+                                    </TableRow>
+                                ) : salesInvoices.data.map((inv) => {
+                                    const si = statusBadge(inv.status);
+                                    return (
+                                        <TableRow key={inv.uuid} className="cursor-pointer hover:bg-slate-50"
+                                            onClick={() => router.visit(`/sales_invoices/${inv.uuid}`)}>
+                                            <TableCell className="font-mono font-semibold text-slate-700 text-sm">{inv.code}</TableCell>
+                                            <TableCell className="font-medium text-slate-800">{inv.client?.nom}</TableCell>
+                                            <TableCell className="text-slate-500 text-sm">{inv.invoice_date}</TableCell>
+                                            <TableCell className="text-right font-mono text-sm">{fmt(inv.total_amount)}</TableCell>
+                                            <TableCell className="text-right font-mono text-sm text-green-600">{fmt(inv.paid_amount)}</TableCell>
+                                            <TableCell className="text-right font-mono text-sm text-amber-600">{fmt(inv.remaining_amount)}</TableCell>
+                                            <TableCell>
+                                                <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-xs font-semibold border ${si.cls}`}>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${si.dot}`} />{si.label}
+                                                </span>
+                                            </TableCell>
+                                            <TableCell className="text-center" onClick={e => e.stopPropagation()}>
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg"
+                                                        onClick={() => router.visit(`/sales_invoices/${inv.uuid}`)}>
+                                                        <Eye className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg"
+                                                        onClick={() => router.visit(`/sales_invoices/${inv.uuid}/edit`)}>
+                                                        <Edit2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg text-red-500 hover:bg-red-50"
+                                                        onClick={() => handleDelete(inv.uuid, inv.code)}>
+                                                        <Trash2 className="h-3.5 w-3.5" />
+                                                    </Button>
+                                                </div>
+                                            </TableCell>
+                                        </TableRow>
+                                    );
+                                })}
+                            </TableBody>
+                        </Table>
+                    </div>
 
-                    {/* PAGINATION */}
-                    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between px-4 py-3 border-t">
-                        <div className="text-sm">
-                            {selectedInvoices.length} of {salesInvoices.total} selected
-                        </div>
-
-                        <div className="flex items-center gap-4">
-                            {/* PER PAGE */}
-                            <Select
-                                value={perPage}
-                                onValueChange={(value) => {
-                                    setPerPage(value);
-                                    router.get('/sales_invoices', { ...filters, per_page: value, page: 1 }, { preserveState: true, preserveScroll: true, replace: true });
-                                }}
-                            >
-                                <SelectTrigger className="w-20 h-8">
-                                    <SelectValue />
-                                </SelectTrigger>
+                    <div className="flex items-center justify-between px-4 py-3 border-t border-slate-100 bg-slate-50/50">
+                        <p className="text-xs text-slate-400">{salesInvoices.total} factures au total</p>
+                        <div className="flex items-center gap-3">
+                            <Select value={perPage} onValueChange={setPerPage}>
+                                <SelectTrigger className="h-7 w-16 rounded-lg text-xs"><SelectValue /></SelectTrigger>
                                 <SelectContent>
-                                    <SelectItem value="5">5</SelectItem>
-                                    <SelectItem value="10">10</SelectItem>
-                                    <SelectItem value="25">25</SelectItem>
-                                    <SelectItem value="50">50</SelectItem>
+                                    {['5','10','25','50'].map(v => <SelectItem key={v} value={v}>{v}</SelectItem>)}
                                 </SelectContent>
                             </Select>
-
-                            {/* PAGE NUMBER */}
-                            <div className="text-sm">
-                                Page {salesInvoices.current_page} of {salesInvoices.last_page}
-                            </div>
-
-                            {/* NAVIGATION */}
-                            <div className="flex items-center gap-1">
-                                <Button
-                                    variant="outline"
-                                    size="icon"
+                            <span className="text-xs text-slate-400">Page {salesInvoices.current_page} / {salesInvoices.last_page}</span>
+                            <div className="flex gap-1">
+                                <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg"
                                     disabled={salesInvoices.current_page === 1}
-                                    onClick={() =>
-                                        router.get('/sales_invoices', {
-                                            ...filters,
-                                            page: salesInvoices.current_page - 1
-                                        }, { preserveState: true })
-                                    }
-                                >
-                                    <ChevronLeft />
+                                    onClick={() => router.get('/sales_invoices', { ...filters, page: salesInvoices.current_page - 1 }, { preserveState: true })}>
+                                    <ChevronLeft className="h-3.5 w-3.5" />
                                 </Button>
-
-                                <Button
-                                    variant="outline"
-                                    size="icon"
+                                <Button variant="outline" size="icon" className="h-7 w-7 rounded-lg"
                                     disabled={salesInvoices.current_page === salesInvoices.last_page}
-                                    onClick={() =>
-                                        router.get('/sales_invoices', {
-                                            ...filters,
-                                            page: salesInvoices.current_page + 1
-                                        }, { preserveState: true })
-                                    }
-                                >
-                                    <ChevronRight />
+                                    onClick={() => router.get('/sales_invoices', { ...filters, page: salesInvoices.current_page + 1 }, { preserveState: true })}>
+                                    <ChevronRight className="h-3.5 w-3.5" />
                                 </Button>
                             </div>
                         </div>
                     </div>
-
                 </div>
-
             </div>
-
         </AppLayout>
     );
 }

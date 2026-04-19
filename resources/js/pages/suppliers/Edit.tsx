@@ -13,7 +13,7 @@ import { useState } from 'react';
 
 const breadcrumbs: BreadcrumbItem[] = [
     { title: 'Suppliers', href: '/suppliers' },
-    { title: 'Edit Supplier', href: '/suppliers' },
+    { title: 'Modifier le fournisseur', href: '/suppliers' },
 ];
 
 const formSchema = z.object({
@@ -77,7 +77,7 @@ export default function EditSupplier() {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="Edit Supplier" />
+            <Head title="Modifier le fournisseur" />
 
             <div className="flex h-full flex-1 flex-col gap-4 overflow-x-auto rounded-xl p-4">
                 <div className="relative overflow-hidden rounded-xl border p-6">
@@ -87,7 +87,7 @@ export default function EditSupplier() {
                             {/* Header */}
                             <div className="col-span-12">
                                 <p className="leading-7">
-                                    <span className="text-lg font-semibold">Edit Supplier</span>
+                                    <span className="text-lg font-semibold">Modifier le fournisseur</span>
                                     <br />
                                     <span className="text-sm text-muted-foreground">
                                         Update supplier information.
@@ -104,7 +104,7 @@ export default function EditSupplier() {
                                         className="col-span-12 lg:col-span-6 flex flex-col gap-2"
                                         data-invalid={fieldState.invalid}
                                     >
-                                        <FieldLabel>Full Name *</FieldLabel>
+                                        <FieldLabel>Nom complet *</FieldLabel>
                                         <Input placeholder="Supplier Name" {...field} />
                                         {fieldState.invalid && <FieldError errors={[fieldState.error]} />}
                                     </Field>
@@ -136,7 +136,7 @@ export default function EditSupplier() {
                                         className="col-span-12 lg:col-span-6 flex flex-col gap-2"
                                         data-invalid={fieldState.invalid}
                                     >
-                                        <FieldLabel>Phone *</FieldLabel>
+                                        <FieldLabel>Téléphone *</FieldLabel>
                                         <Input
                                             type="tel"
                                             placeholder="Enter phone number"
@@ -158,14 +158,14 @@ export default function EditSupplier() {
                                 name="status"
                                 render={({ field }) => (
                                     <Field className="col-span-12 lg:col-span-6 flex flex-col gap-2">
-                                        <FieldLabel>Status</FieldLabel>
+                                        <FieldLabel>Statut</FieldLabel>
                                         <Select value={field.value} onValueChange={field.onChange}>
                                             <SelectTrigger>
                                                 <SelectValue placeholder="Select status" />
                                             </SelectTrigger>
                                             <SelectContent>
-                                                <SelectItem value="active">Active</SelectItem>
-                                                <SelectItem value="inactive">Inactive</SelectItem>
+                                                <SelectItem value="active">Actif</SelectItem>
+                                                <SelectItem value="inactive">Inactif</SelectItem>
                                             </SelectContent>
                                         </Select>
                                     </Field>
@@ -178,7 +178,7 @@ export default function EditSupplier() {
                                 name="adresse"
                                 render={({ field }) => (
                                     <Field className="col-span-12 flex flex-col gap-2">
-                                        <FieldLabel>Address</FieldLabel>
+                                        <FieldLabel>Adresse</FieldLabel>
                                         <Textarea className="h-20" placeholder="Street, building..." {...field} />
                                     </Field>
                                 )}
@@ -190,7 +190,7 @@ export default function EditSupplier() {
                                 name="ville"
                                 render={({ field }) => (
                                     <Field className="col-span-12 lg:col-span-6 flex flex-col gap-2">
-                                        <FieldLabel>City</FieldLabel>
+                                        <FieldLabel>Ville</FieldLabel>
                                         <Input placeholder="Casablanca" {...field} />
                                     </Field>
                                 )}
@@ -217,10 +217,10 @@ export default function EditSupplier() {
                                     disabled={processing}
                                     className="w-full sm:w-40"
                                 >
-                                    Cancel
+                                    Annuler
                                 </Button>
                                 <Button type="submit" disabled={processing} className="w-full sm:w-40">
-                                    {processing ? 'Updating...' : 'Update Supplier'}
+                                    {processing ? 'Enregistrement...' : 'Enregistrer'}
                                 </Button>
                             </div>
                             

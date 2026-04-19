@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Models\CompanyProfile;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -44,8 +45,9 @@ class HandleInertiaRequests extends Middleware
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
             'flash' => [
                 'success' => fn () => $request->session()->get('success'),
-                'error' => fn () => $request->session()->get('error'),
+                'error'   => fn () => $request->session()->get('error'),
             ],
+            'company' => fn () => CompanyProfile::first() ?? new CompanyProfile(['name' => 'My Company']),
         ];
     }
 }

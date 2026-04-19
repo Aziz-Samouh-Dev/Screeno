@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php artisan *)",
+      "Bash(npm run *)",
+      "Bash(php -r \"require 'vendor/autoload.php'; echo class_exists\\('Barryvdh\\\\DomPDF\\\\Facade\\\\Pdf'\\) ? 'dompdf ok' : 'no dompdf';\")"
+    ]
+  }
+}

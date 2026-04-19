@@ -64,7 +64,7 @@ interface Props {
 
 export default function ShowSupplier({ supplier, invoices, payments }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
-        { title: 'Suppliers', href: '/suppliers' },
+        { title: 'Fournisseurs', href: '/suppliers' },
         { title: supplier.nom, href: `/suppliers/${supplier.uuid}` },
     ];
 
@@ -115,7 +115,7 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                         onClick={() => router.visit('/suppliers')}
                     >
                         <ArrowLeft className="mr-2 h-4 w-4" />
-                        Back to Suppliers
+                        Retour aux fournisseurs
                     </Button>
 
                     <div className="flex space-x-3">
@@ -126,13 +126,13 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                             }
                         >
                             <Edit2 className="mr-2 h-4 w-4" />
-                            Edit
+                            Modifier
                         </Button>
 
                         <Button
                             variant="destructive"
                             onClick={() => {
-                                if (confirm('Delete this supplier?')) {
+                                if (confirm('Supprimer ce fournisseur ?')) {
                                     router.delete(
                                         `/suppliers/${supplier.uuid}`,
                                     );
@@ -140,7 +140,7 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                             }}
                         >
                             <Trash2 className="mr-2 h-4 w-4" />
-                            Delete
+                            Supprimer
                         </Button>
                     </div>
                 </div>
@@ -151,7 +151,7 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="mb-4 flex items-start justify-between">
                             <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                Total Purchases
+                                Total achats
                             </p>
                             <div className="rounded-lg bg-slate-50 p-2">
                                 <FileDown className="h-4 w-4 text-slate-400" />
@@ -161,14 +161,14 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                             {totalPurchased.toFixed(2)} MAD{' '}
                         </h3>
                         <p className="mt-2 text-xs text-slate-400">
-                            All time procurement
+                            Achats cumulés
                         </p>
                     </div>
 
                     <div className="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
                         <div className="mb-4 flex items-start justify-between">
                             <p className="text-xs font-bold tracking-wider text-slate-500 uppercase">
-                                Total Paid
+                                Total payé
                             </p>
                             <div className="rounded-lg bg-green-50 p-2">
                                 <CheckCircle2 className="h-4 w-4 text-green-500" />
@@ -178,14 +178,14 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                             {totalPaid.toFixed(2)} MAD
                         </h3>
                         <p className="mt-2 text-xs font-medium text-green-600">
-                            Funds sent
+                            Montants versés
                         </p>
                     </div>
 
                     <div className="rounded-3xl bg-slate-900 p-6 shadow-xl">
                         <div className="mb-4 flex items-start justify-between">
                             <p className="text-xs font-bold tracking-wider text-slate-400 uppercase">
-                                Outstanding Debt
+                                Solde dû
                             </p>
                             <div className="rounded-lg bg-slate-800 p-2">
                                 <AlertCircle className="h-4 w-4 text-amber-400" />
@@ -195,7 +195,7 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                             {balance.toFixed(2)} MAD
                         </h3>
                         <p className="mt-2 text-xs text-slate-400">
-                            Pending payments
+                            Paiements en attente
                         </p>
                     </div>
                 </div>
@@ -206,34 +206,34 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                     <div className="space-y-6">
                         <div className="bg-white rounded-3xl border border-slate-200 shadow-sm p-6">
                             <h4 className="font-bold text-slate-900 mb-6 flex items-center">
-                                <Building2 className="w-4 h-4 mr-2" /> Supplier Information
+                                <Building2 className="w-4 h-4 mr-2" /> Informations fournisseur
                             </h4>
                             <div className="space-y-4">
                                 <div className="flex items-start space-x-3">
                                     <Phone className="w-4 h-4 text-slate-400 mt-0.5" />
                                     <div>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Phone</p>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Téléphone</p>
                                         <p className="text-sm text-slate-900 font-medium">{supplier.telephone ?? 'N/A'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start space-x-3">
                                     <Mail className="w-4 h-4 text-slate-400 mt-0.5" />
                                     <div>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Email</p>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">E-mail</p>
                                         <p className="text-sm text-slate-900 font-medium">{supplier.email ?? 'N/A'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start space-x-3">
                                     <MapPin className="w-4 h-4 text-slate-400 mt-0.5" />
                                     <div>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Address</p>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Adresse</p>
                                         <p className="text-sm text-slate-900 font-medium leading-relaxed">{supplier.adresse ?? 'N/A'}</p>
                                     </div>
                                 </div>
                                 <div className="flex items-start space-x-3">
                                     <Calendar className="w-4 h-4 text-slate-400 mt-0.5" />
                                     <div>
-                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Vendor Since</p>
+                                        <p className="text-xs font-bold text-slate-400 uppercase tracking-tighter">Fournisseur depuis</p>
                                         <p className="text-sm text-slate-900 font-medium">{supplier.created_at}</p>
                                     </div>
                                 </div>
@@ -247,18 +247,17 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                     <div className="overflow-hidden rounded-3xl border border-slate-200 bg-white shadow-sm lg:col-span-2">
                         <div className="flex items-center justify-between border-b border-slate-100 px-6 py-5">
                             <h3 className="flex items-center font-bold text-slate-900">
-                                <Clock className="mr-2 h-4 w-4" /> Supplier
-                                Financial History
+                                <Clock className="mr-2 h-4 w-4" /> Historique financier
                             </h3>
                             <div className="flex items-center space-x-2">
                                 <button className="rounded-lg bg-slate-50 px-3 py-1 text-xs font-bold text-slate-500 hover:text-slate-900">
-                                    All
+                                    Tout
                                 </button>
                                 <button className="px-3 py-1 text-xs font-bold text-slate-400 hover:text-slate-900">
-                                    Purchases
+                                    Achats
                                 </button>
                                 <button className="px-3 py-1 text-xs font-bold text-slate-400 hover:text-slate-900">
-                                    Payments
+                                    Paiements
                                 </button>
                             </div>
                         </div>
@@ -267,7 +266,7 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                                 <thead className="bg-slate-50 text-xs text-slate-500 uppercase">
                                     <tr>
                                         <th className="px-6 py-3 text-left">
-                                            Reference
+                                            Référence
                                         </th>
                                         <th className="px-6 py-3 text-left">
                                             Type
@@ -276,10 +275,10 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                                             Date
                                         </th>
                                         <th className="px-6 py-3 text-right">
-                                            Amount
+                                            Montant
                                         </th>
                                         <th className="px-6 py-3 text-left">
-                                            Status
+                                            Statut
                                         </th>
                                     </tr>
                                 </thead>
@@ -304,12 +303,12 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                                                 {item.type === 'invoice' ? (
                                                     <>
                                                         <FileText className="h-4 w-4 text-blue-600" />
-                                                        Invoice
+                                                        Facture
                                                     </>
                                                 ) : (
                                                     <>
                                                         <CreditCard className="h-4 w-4 text-green-600" />
-                                                        Payment
+                                                        Paiement
                                                     </>
                                                 )}
                                             </td>
@@ -321,11 +320,8 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                                             </td>
 
                                             <td className="px-6 py-4 text-right font-bold">
-                                                {item.type === 'payment'
-                                                    ? '-'
-                                                    : ''}
-                                                $
-                                                {Number(item.amount).toFixed(2)}
+                                                {item.type === 'payment' ? '-' : ''}
+                                                {Number(item.amount).toFixed(2)} MAD
                                             </td>
 
                                             <td className="px-6 py-4">
@@ -341,7 +337,7 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                                                                     : 'bg-green-50 text-green-700'
                                                         }`}
                                                 >
-                                                    {item.status}
+                                                    {item.status === 'paid' ? 'Payée' : item.status === 'partial' ? 'Partielle' : item.status === 'unpaid' ? 'Impayée' : 'Payé'}
                                                 </span>
                                             </td>
                                         </tr>
@@ -351,7 +347,7 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                         </div>
                         <div className="border-t border-slate-100 bg-slate-50 p-4 text-center">
                             <button className="text-xs font-bold text-slate-500 transition-colors hover:text-slate-900">
-                                Load More History
+                                Charger plus
                             </button>
                         </div>
                     </div>
