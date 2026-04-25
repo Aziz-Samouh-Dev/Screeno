@@ -1,25 +1,21 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState, useRef, useEffect } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Plus, Trash2, Save, PackagePlus } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Trash2, Save, ShoppingCart, ChevronDown, Search, PackagePlus } from "lucide-react"
 
 /* ================= TYPES ================= */
 
 export interface Supplier {
     id: number
     nom: string
+    email?: string
+    telephone?: string
 }
 
 export interface Product {
@@ -27,14 +23,15 @@ export interface Product {
     nom: string
     purchase_price: number
     sale_price: number
+    stock_quantity: number
 }
 
 export interface InvoiceItem {
-    product_id?: number | null
+    product_id: number | null
     product_name?: string
     quantity: number
     unit_price: number
-    sale_price?: number
+    sale_price: number
     is_new?: boolean
 }
 
@@ -53,6 +50,123 @@ interface Props {
     defaultValues: InvoiceFormValues
     onSubmit: (data: InvoiceFormValues) => void
     processing?: boolean
+}
+
+const fmtMAD = (n: number) =>
+    Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2 }) + ' MAD'
+
+/* ================= SUPPLIER COMBOBOX ================= */
+
+function EntityCombobox({
+    items,
+    value,
+    onChange,
+    placeholder,
+    onCreateNew,
+    createLabel,
+}: {
+    items: Supplier[]
+    value: number | null | undefined
+    onChange: (id: number | null) => void
+    placeholder: string
+    onCreateNew?: () => void
+    createLabel?: string
+}) {
+    const [open, setOpen] = useState(false)
+    const [search, setSearch] = useState('')
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const handle = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) {
+                setOpen(false)
+                setSearch('')
+            }
+        }
+        document.addEventListener('mousedown', handle)
+        return () => document.removeEventListener('mousedown', handle)
+    }, [])
+
+    const filtered = items.filter(item =>
+        item.nom.toLowerCase().includes(search.toLowerCase()) ||
+        item.email?.toLowerCase().includes(search.toLowerCase()) ||
+        item.telephone?.includes(search)
+    )
+
+    const selected = items.find(i => i.id === value)
+
+    return (
+        <div ref={ref} className="relative">
+            <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="flex h-10 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm hover:border-slate-300 transition-colors"
+            >
+                <div className="flex flex-col items-start min-w-0 flex-1">
+                    {selected ? (
+                        <>
+                            <span className="font-semibold text-slate-900 truncate leading-tight">{selected.nom}</span>
+                            {(selected.telephone || selected.email) && (
+                                <span className="text-xs text-slate-400 truncate leading-tight">
+                                    {selected.telephone || selected.email}
+                                </span>
+                            )}
+                        </>
+                    ) : (
+                        <span className="text-slate-400">{placeholder}</span>
+                    )}
+                </div>
+                <ChevronDown className={`h-4 w-4 text-slate-400 shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                    <div className="p-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 px-2 py-1.5 bg-slate-50 rounded-lg">
+                            <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <input
+                                autoFocus
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Rechercher..."
+                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                            />
+                        </div>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto">
+                        {filtered.length > 0 ? filtered.map(item => (
+                            <button
+                                key={item.id}
+                                type="button"
+                                className={`w-full text-left px-3 py-2.5 hover:bg-slate-50 flex flex-col gap-0.5 transition-colors ${value === item.id ? 'bg-violet-50' : ''}`}
+                                onClick={() => { onChange(item.id); setOpen(false); setSearch('') }}
+                            >
+                                <span className="font-semibold text-slate-900 text-sm">{item.nom}</span>
+                                <div className="flex gap-3">
+                                    {item.telephone && <span className="text-xs text-slate-400">{item.telephone}</span>}
+                                    {item.email && <span className="text-xs text-slate-400">{item.email}</span>}
+                                </div>
+                            </button>
+                        )) : (
+                            <p className="px-3 py-4 text-sm text-center text-slate-400">Aucun résultat</p>
+                        )}
+                    </div>
+                    {onCreateNew && (
+                        <div className="border-t border-slate-100 p-2">
+                            <button
+                                type="button"
+                                onClick={() => { onCreateNew(); setOpen(false); setSearch('') }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-violet-600 hover:bg-violet-50 rounded-lg transition-colors"
+                            >
+                                <Plus className="h-4 w-4" />
+                                {createLabel || 'Nouveau'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    )
 }
 
 /* ================= COMPONENT ================= */
@@ -75,7 +189,6 @@ export default function InvoiceForm({
 
     const isNewSupplier = supplierId === null || supplierId === undefined
 
-    /* ── totals ── */
     const subtotal = useMemo(
         () => items.reduce((sum, item) =>
             sum + (Number(item.quantity) || 0) * (Number(item.unit_price) || 0), 0),
@@ -83,89 +196,80 @@ export default function InvoiceForm({
         [JSON.stringify(items)]
     )
 
-    /* ── supplier change ── */
-    const handleSupplierChange = (value: string) => {
-        if (value === "new") {
-            setValue("supplier_id", null)
-            setValue("supplier_name", "")
-            setValue("supplier_phone", "")
-        } else {
-            setValue("supplier_id", Number(value))
-            setValue("supplier_name", "")
-            setValue("supplier_phone", "")
-        }
-    }
+    const getProduct = (id: number | null) =>
+        products.find((p) => p.id === Number(id)) ?? null
 
-    /* ── product change ── */
-    const handleProductChange = (index: number, value: string) => {
-        if (value === "new") {
-            setValue(`items.${index}.is_new`, true)
-            setValue(`items.${index}.product_id`, null)
-            setValue(`items.${index}.product_name`, "")
-            setValue(`items.${index}.unit_price`, 0)
-            setValue(`items.${index}.sale_price`, 0)
-            return
-        }
-        const product = products.find((p) => p.id === Number(value))
+    // Only count existing (non-new) items for duplicate prevention
+    const selectedProductIds = useMemo(
+        () => items
+            .filter(i => !i.is_new)
+            .map(i => i.product_id)
+            .filter(Boolean) as number[],
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+        [JSON.stringify(items)]
+    )
+
+    const handleProductChange = (index: number, productId: string) => {
+        const product = products.find((p) => p.id === Number(productId))
         if (!product) return
-        setValue(`items.${index}.is_new`, false)
-        setValue(`items.${index}.product_id`, product.id)
-        setValue(`items.${index}.product_name`, product.nom)
-        setValue(`items.${index}.unit_price`, product.purchase_price)
-        setValue(`items.${index}.sale_price`, product.sale_price)
+
+        const existingIndex = items.findIndex(
+            (item, i) => i !== index && !item.is_new && Number(item.product_id) === product.id
+        )
+
+        if (existingIndex !== -1) {
+            const currentQty  = Number(items[index]?.quantity) || 1
+            const existingQty = Number(items[existingIndex]?.quantity) || 0
+            setValue(`items.${existingIndex}.quantity`, existingQty + currentQty)
+            remove(index)
+        } else {
+            setValue(`items.${index}.product_id`, product.id)
+            setValue(`items.${index}.unit_price`, product.purchase_price)
+            setValue(`items.${index}.sale_price`, product.sale_price)
+            setValue(`items.${index}.quantity`, 1)
+        }
     }
 
-    /* ── cancel new product → revert to selector ── */
-    const cancelNewProduct = (index: number) => {
-        setValue(`items.${index}.is_new`, false)
-        setValue(`items.${index}.product_id`, null)
-        setValue(`items.${index}.product_name`, "")
-        setValue(`items.${index}.unit_price`, 0)
-        setValue(`items.${index}.sale_price`, 0)
-    }
+    const allExistingProductsUsed =
+        products.length > 0 && selectedProductIds.length >= products.length
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 w-full">
 
-            {/* ── Supplier + Date ───────────────────────────────────── */}
+            {/* ── Fournisseur + Date ────────────────────────────────── */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
 
-                {/* Supplier */}
+                {/* Fournisseur */}
                 <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Supplier <span className="text-red-500">*</span>
+                        Fournisseur <span className="text-red-500">*</span>
                     </Label>
-
-                    <Select
-                        value={isNewSupplier ? "new" : supplierId?.toString()}
-                        onValueChange={handleSupplierChange}
-                    >
-                        <SelectTrigger className="h-10 border border-slate-200 rounded-xl">
-                            <SelectValue placeholder="Select supplier" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {suppliers.map((s) => (
-                                <SelectItem key={s.id} value={s.id.toString()}>
-                                    {s.nom}
-                                </SelectItem>
-                            ))}
-                            <SelectItem value="new">
-                                <span className="flex items-center gap-2">
-                                    <Plus className="w-3 h-3" /> New Supplier
-                                </span>
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <EntityCombobox
+                        items={suppliers}
+                        value={isNewSupplier ? undefined : supplierId}
+                        onChange={(id) => {
+                            setValue("supplier_id", id)
+                            setValue("supplier_name", "")
+                            setValue("supplier_phone", "")
+                        }}
+                        placeholder="Sélectionner un fournisseur"
+                        onCreateNew={() => {
+                            setValue("supplier_id", null)
+                            setValue("supplier_name", "")
+                            setValue("supplier_phone", "")
+                        }}
+                        createLabel="Nouveau fournisseur"
+                    />
 
                     {isNewSupplier && (
                         <div className="grid grid-cols-2 gap-3 pt-1">
                             <Input
-                                placeholder="Supplier name *"
+                                placeholder="Nom du fournisseur *"
                                 {...register("supplier_name", { required: isNewSupplier })}
                                 className="h-10 border border-slate-200 rounded-xl"
                             />
                             <Input
-                                placeholder="Phone"
+                                placeholder="Téléphone"
                                 {...register("supplier_phone")}
                                 className="h-10 border border-slate-200 rounded-xl"
                             />
@@ -173,10 +277,10 @@ export default function InvoiceForm({
                     )}
                 </div>
 
-                {/* Date */}
+                {/* Date de facture */}
                 <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                        Invoice Date <span className="text-red-500">*</span>
+                        Date de facture <span className="text-red-500">*</span>
                     </Label>
                     <Input
                         type="date"
@@ -187,87 +291,121 @@ export default function InvoiceForm({
                 </div>
             </div>
 
-            {/* ── Items ─────────────────────────────────────────────── */}
+            {/* ── Lignes de facture ──────────────────────────────────── */}
             <section className="space-y-4">
                 <div className="flex justify-between items-center">
                     <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">
-                        Invoice Items
+                        Lignes de facture
                     </h3>
-                    <Button
-                        type="button"
-                        size="sm"
-                        className="bg-slate-100 text-slate-700 hover:bg-slate-200"
-                        onClick={() => append({ quantity: 1, unit_price: 0, sale_price: 0, is_new: false })}
-                    >
-                        <Plus className="w-3 h-3 mr-1" /> Add Item
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="border-slate-200 text-slate-700 hover:bg-slate-50 rounded-lg"
+                            disabled={allExistingProductsUsed}
+                            onClick={() => append({ product_id: null, quantity: 1, unit_price: 0, sale_price: 0, is_new: false })}
+                            title={allExistingProductsUsed ? 'Tous les produits existants ont été ajoutés' : undefined}
+                        >
+                            <Plus className="w-3 h-3 mr-1" /> Produit existant
+                        </Button>
+                        <Button
+                            type="button"
+                            size="sm"
+                            className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg"
+                            onClick={() => append({ product_id: null, product_name: '', quantity: 1, unit_price: 0, sale_price: 0, is_new: true })}
+                        >
+                            <PackagePlus className="w-3 h-3 mr-1" /> Nouveau produit
+                        </Button>
+                    </div>
                 </div>
 
                 <div className="border border-slate-200 rounded-2xl overflow-hidden">
                     <table className="w-full text-sm">
                         <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500">
                             <tr>
-                                <th className="px-4 py-3 text-left">Product</th>
-                                <th className="px-4 py-3 w-24 text-center">Qty</th>
-                                <th className="px-4 py-3 w-32 text-right">Purchase Price</th>
-                                <th className="px-4 py-3 w-32 text-right">Sale Price</th>
+                                <th className="px-4 py-3 text-left">Produit</th>
+                                <th className="px-4 py-3 w-24 text-center">Stock</th>
+                                <th className="px-4 py-3 w-24 text-center">Qté</th>
+                                <th className="px-4 py-3 w-32 text-right">Prix d'achat</th>
+                                <th className="px-4 py-3 w-32 text-right">Prix de vente</th>
                                 <th className="px-4 py-3 w-32 text-right">Total</th>
                                 <th className="px-4 py-3 w-10" />
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {fields.map((field, index) => {
-                                const isNew = items[index]?.is_new ?? false
+                                const isNew     = items[index]?.is_new
+                                const productId = items[index]?.product_id
+                                const product   = getProduct(productId ?? null)
+                                const stock     = product?.stock_quantity ?? 0
 
                                 return (
-                                    <tr key={field.id} className="hover:bg-slate-50">
+                                    <tr key={field.id} className={`hover:bg-slate-50 ${isNew ? 'bg-violet-50/30' : ''}`}>
 
-                                        {/* Product cell */}
+                                        {/* Produit */}
                                         <td className="px-4 py-2">
                                             {isNew ? (
-                                                /* New product — text input + cancel */
-                                                <div className="space-y-1">
+                                                <div className="flex items-center gap-2">
+                                                    <span className="inline-block shrink-0 rounded-full bg-violet-100 text-violet-700 text-xs font-bold px-2 py-0.5">
+                                                        Nouveau
+                                                    </span>
                                                     <Input
-                                                        placeholder="New product name *"
-                                                        {...register(`items.${index}.product_name`)}
-                                                        className="h-9 border border-slate-200 rounded-lg"
+                                                        placeholder="Nom du produit *"
+                                                        className="h-9 border border-violet-200 rounded-lg"
+                                                        {...register(`items.${index}.product_name`, { required: !!isNew })}
                                                     />
-                                                    <button
-                                                        type="button"
-                                                        onClick={() => cancelNewProduct(index)}
-                                                        className="text-xs text-slate-400 hover:text-slate-600 underline"
-                                                    >
-                                                        ← Select existing product
-                                                    </button>
                                                 </div>
                                             ) : (
-                                                /* Existing product selector */
                                                 <Select
                                                     value={items[index]?.product_id?.toString() ?? ""}
                                                     onValueChange={(v) => handleProductChange(index, v)}
                                                 >
                                                     <SelectTrigger className="h-9 border border-slate-200 rounded-lg">
-                                                        <SelectValue placeholder="Select product" />
+                                                        <SelectValue placeholder="Sélectionner" />
                                                     </SelectTrigger>
                                                     <SelectContent>
-                                                        {products.map((p) => (
-                                                            <SelectItem key={p.id} value={p.id.toString()}>
-                                                                {p.nom}
-                                                            </SelectItem>
-                                                        ))}
-                                                        <hr className="my-1 border-slate-100" />
-                                                        <SelectItem value="new">
-                                                            <span className="flex items-center gap-2 text-blue-600">
-                                                                <PackagePlus className="w-3 h-3" />
-                                                                Add New Product
-                                                            </span>
-                                                        </SelectItem>
+                                                        {products.map((p) => {
+                                                            const alreadyUsed = selectedProductIds.includes(p.id) &&
+                                                                Number(items[index]?.product_id) !== p.id
+                                                            return (
+                                                                <SelectItem
+                                                                    key={p.id}
+                                                                    value={p.id.toString()}
+                                                                    disabled={alreadyUsed}
+                                                                >
+                                                                    <span className="flex items-center gap-2">
+                                                                        {p.nom}
+                                                                        <span className={`text-xs font-mono ${
+                                                                            p.stock_quantity === 0 ? "text-red-500"
+                                                                            : p.stock_quantity <= 10 ? "text-amber-500"
+                                                                            : "text-slate-400"
+                                                                        }`}>
+                                                                            ({p.stock_quantity} en stock)
+                                                                        </span>
+                                                                    </span>
+                                                                </SelectItem>
+                                                            )
+                                                        })}
                                                     </SelectContent>
                                                 </Select>
                                             )}
                                         </td>
 
-                                        {/* Qty */}
+                                        {/* Stock actuel */}
+                                        <td className="px-4 py-2 text-center">
+                                            {!isNew && product ? (
+                                                <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
+                                                    stock === 0 ? "bg-red-100 text-red-600"
+                                                    : stock <= 10 ? "bg-amber-100 text-amber-600"
+                                                    : "bg-green-100 text-green-600"
+                                                }`}>
+                                                    {stock}
+                                                </span>
+                                            ) : <span className="text-slate-300">—</span>}
+                                        </td>
+
+                                        {/* Qté */}
                                         <td className="px-4 py-2 text-center">
                                             <Input
                                                 type="number"
@@ -277,7 +415,7 @@ export default function InvoiceForm({
                                             />
                                         </td>
 
-                                        {/* Purchase price */}
+                                        {/* Prix d'achat */}
                                         <td className="px-4 py-2">
                                             <Input
                                                 type="number"
@@ -288,7 +426,7 @@ export default function InvoiceForm({
                                             />
                                         </td>
 
-                                        {/* Sale price — always shown for pricing decisions */}
+                                        {/* Prix de vente */}
                                         <td className="px-4 py-2">
                                             <Input
                                                 type="number"
@@ -299,12 +437,12 @@ export default function InvoiceForm({
                                             />
                                         </td>
 
-                                        {/* Line total */}
-                                        <td className="px-4 py-2 text-right font-semibold font-mono text-slate-900">
-                                            ${((items[index]?.quantity || 0) * (items[index]?.unit_price || 0)).toFixed(2)}
+                                        {/* Total */}
+                                        <td className="px-4 py-2 text-right font-semibold text-slate-900 font-mono text-xs">
+                                            {fmtMAD((items[index]?.quantity || 0) * (items[index]?.unit_price || 0))}
                                         </td>
 
-                                        {/* Delete */}
+                                        {/* Supprimer */}
                                         <td className="px-4 py-2 text-right">
                                             <Button
                                                 type="button"
@@ -322,9 +460,9 @@ export default function InvoiceForm({
 
                             {fields.length === 0 && (
                                 <tr>
-                                    <td colSpan={6} className="px-4 py-12 text-center text-slate-400">
-                                        <PackagePlus className="w-8 h-8 mx-auto mb-2 opacity-30" />
-                                        <p className="text-sm">No items yet. Click "Add Item" to start.</p>
+                                    <td colSpan={7} className="px-4 py-12 text-center text-slate-400">
+                                        <ShoppingCart className="w-8 h-8 mx-auto mb-2 opacity-30" />
+                                        <p className="text-sm">Aucun article. Cliquez sur « Produit existant » ou « Nouveau produit » pour commencer.</p>
                                     </td>
                                 </tr>
                             )}
@@ -336,37 +474,37 @@ export default function InvoiceForm({
             {/* ── Notes ─────────────────────────────────────────────── */}
             <div className="space-y-2">
                 <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                    Notes (optional)
+                    Notes (optionnel)
                 </Label>
                 <Textarea
                     {...register("notes")}
-                    placeholder="Additional notes, payment terms, or delivery instructions…"
+                    placeholder="Notes additionnelles, conditions de paiement, instructions de livraison…"
                     rows={3}
                     className="border-slate-200 rounded-xl resize-none"
                 />
             </div>
 
-            {/* ── Summary ───────────────────────────────────────────── */}
+            {/* ── Récapitulatif ─────────────────────────────────────── */}
             <div className="w-full md:w-80 ml-auto bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-3">
                 <div className="flex justify-between text-sm text-slate-500">
-                    <span>Subtotal</span>
-                    <span className="font-mono">${subtotal.toFixed(2)}</span>
+                    <span>Sous-total</span>
+                    <span className="font-mono">{fmtMAD(subtotal)}</span>
                 </div>
                 <div className="flex justify-between text-sm text-slate-500">
-                    <span>Tax</span>
-                    <span className="font-mono">$0.00</span>
+                    <span>Taxe</span>
+                    <span className="font-mono">0,00 MAD</span>
                 </div>
                 <div className="pt-3 border-t border-slate-200 flex justify-between font-bold text-slate-900 text-lg">
                     <span>Total</span>
-                    <span className="font-mono">${subtotal.toFixed(2)}</span>
+                    <span className="font-mono">{fmtMAD(subtotal)}</span>
                 </div>
             </div>
 
-            {/* ── Submit ────────────────────────────────────────────── */}
+            {/* ── Enregistrer ───────────────────────────────────────── */}
             <div className="flex justify-end">
-                <Button type="submit" disabled={processing}>
+                <Button type="submit" disabled={processing} className="rounded-xl px-6">
                     <Save className="w-4 h-4 mr-2" />
-                    {processing ? "Saving…" : "Save Invoice"}
+                    {processing ? 'Enregistrement…' : 'Enregistrer la facture'}
                 </Button>
             </div>
         </form>

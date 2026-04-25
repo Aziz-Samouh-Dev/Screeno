@@ -3,10 +3,12 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\CompanyProfile;
 use App\Models\PaymentMethod;
 use App\Models\Produit;
 use App\Models\SalesInvoice;
 use App\Models\SalesInvoiceItem;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
@@ -50,7 +52,7 @@ class SalesInvoiceController extends Controller
     public function create()
     {
         return Inertia::render('sales_invoices/Create', [
-            'clients' => Client::all(),
+            'clients'  => Client::select('id', 'nom', 'email', 'telephone')->orderBy('nom')->get(),
             'products' => Produit::select('id', 'nom', 'sale_price', 'stock_quantity')->get(),
         ]);
     }
@@ -74,64 +76,72 @@ class SalesInvoiceController extends Controller
             'items.*.quantity' => 'required|integer|min:1',
         ]);
 
-        DB::transaction(function () use ($validated) {
+        try {
+            DB::transaction(function () use ($validated) {
 
-            /*
-            |----------------------------------------
-            | 1️⃣ CREATE CLIENT IF NEW
-            |----------------------------------------
-            */
-            if (! empty($validated['client_name'])) {
-                $client = Client::create([
-                    'nom' => $validated['client_name'],
-                    'telephone' => $validated['client_phone'] ?? null,
-                ]);
-            } else {
-                $client = Client::findOrFail($validated['client_id']);
-            }
-
-            /*
-            |----------------------------------------
-            | 2️⃣ CREATE INVOICE
-            |----------------------------------------
-            */
-            $invoice = SalesInvoice::create([
-                'client_id' => $client->id,
-                'invoice_date' => $validated['invoice_date'],
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            /*
-            |----------------------------------------
-            | 3️⃣ CREATE ITEMS
-            |----------------------------------------
-            */
-            foreach ($validated['items'] as $item) {
-                $product = Produit::findOrFail($item['product_id']);
-
-                if ($product->stock_quantity < $item['quantity']) {
-                    throw new \Exception("Not enough stock for product {$product->nom}");
+                if (! empty($validated['client_name'])) {
+                    $client = Client::create([
+                        'nom' => $validated['client_name'],
+                        'telephone' => $validated['client_phone'] ?? null,
+                    ]);
+                } else {
+                    $client = Client::findOrFail($validated['client_id']);
                 }
 
-                $totalPrice = $item['unit_price'] * $item['quantity'];
-
-                SalesInvoiceItem::create([
-                    'sales_invoice_id' => $invoice->id,
-                    'product_id' => $product->id,
-                    'product_name' => $product->nom,
-                    'unit_price' => $item['unit_price'],
-                    'quantity' => $item['quantity'],
-                    'total_price' => $totalPrice,
+                $invoice = SalesInvoice::create([
+                    'client_id'    => $client->id,
+                    'invoice_date' => $validated['invoice_date'],
+                    'notes'        => $validated['notes'] ?? null,
                 ]);
 
-                $product->decrement('stock_quantity', $item['quantity']);
-            }
+                foreach ($validated['items'] as $item) {
+                    $product = Produit::findOrFail($item['product_id']);
 
-            $invoice->updateTotals();
-        });
+                    if ($product->stock_quantity < $item['quantity']) {
+                        throw new \Exception(
+                            "Stock insuffisant pour « {$product->nom} » — disponible : {$product->stock_quantity}, demandé : {$item['quantity']}."
+                        );
+                    }
+
+                    SalesInvoiceItem::create([
+                        'sales_invoice_id' => $invoice->id,
+                        'product_id'       => $product->id,
+                        'product_name'     => $product->nom,
+                        'unit_price'       => $item['unit_price'],
+                        'quantity'         => $item['quantity'],
+                        'total_price'      => $item['unit_price'] * $item['quantity'],
+                    ]);
+
+                    $product->decrement('stock_quantity', $item['quantity']);
+                }
+
+                $invoice->updateTotals();
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('sales_invoices.index')
-            ->with('success', 'Sales invoice created successfully.');
+            ->with('success', 'Facture de vente créée avec succès.');
+    }
+
+    /**
+     * Download invoice as PDF
+     */
+    public function downloadPdf(SalesInvoice $salesInvoice)
+    {
+        try {
+            $salesInvoice->load(['client', 'items', 'payments.paymentMethod']);
+
+            $pdf = Pdf::loadView('sales_invoices.invoice_pdf', [
+                'invoice' => $salesInvoice,
+                'company' => (CompanyProfile::first() ?? new CompanyProfile())->toArray(),
+            ])->setPaper('a4', 'portrait');
+
+            return $pdf->download("{$salesInvoice->code}.pdf");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Impossible de générer le PDF : ' . $e->getMessage());
+        }
     }
 
     /**
@@ -162,10 +172,9 @@ class SalesInvoiceController extends Controller
         $salesInvoice->load('items');
 
         return Inertia::render('sales_invoices/Edit', [
-            'invoice' => $salesInvoice,
-            'clients' => Client::all(),
+            'invoice'  => $salesInvoice,
+            'clients'  => Client::select('id', 'nom', 'email', 'telephone')->orderBy('nom')->get(),
             'products' => Produit::select('id', 'nom', 'sale_price', 'stock_quantity')->get(),
-
         ]);
     }
 
@@ -188,29 +197,14 @@ class SalesInvoiceController extends Controller
             'items.*.unit_price' => 'required|numeric|min:0',
         ]);
 
-        DB::transaction(function () use ($validated, $salesInvoice) {
+        try { DB::transaction(function () use ($validated, $salesInvoice) {
 
-            /*
-            |----------------------------------------
-            | 1️⃣ RESTORE OLD STOCK
-            |----------------------------------------
-            */
             foreach ($salesInvoice->items as $oldItem) {
                 $oldItem->product?->increment('stock_quantity', $oldItem->quantity);
             }
 
-            /*
-            |----------------------------------------
-            | 2️⃣ DELETE OLD ITEMS
-            |----------------------------------------
-            */
             $salesInvoice->items()->delete();
 
-            /*
-            |----------------------------------------
-            | 3️⃣ CREATE OR GET CLIENT
-            |----------------------------------------
-            */
             if (! empty($validated['client_name'])) {
                 $client = Client::create([
                     'nom' => $validated['client_name'],
@@ -220,15 +214,10 @@ class SalesInvoiceController extends Controller
                 $client = Client::findOrFail($validated['client_id']);
             }
 
-            /*
-            |----------------------------------------
-            | 4️⃣ UPDATE INVOICE
-            |----------------------------------------
-            */
             $salesInvoice->update([
-                'client_id' => $client->id,
+                'client_id'    => $client->id,
                 'invoice_date' => $validated['invoice_date'],
-                'notes' => $validated['notes'] ?? null,
+                'notes'        => $validated['notes'] ?? null,
             ]);
 
             /*
@@ -240,31 +229,30 @@ class SalesInvoiceController extends Controller
                 $product = Produit::findOrFail($item['product_id']);
 
                 if ($product->stock_quantity < $item['quantity']) {
-                    throw new \Exception("Not enough stock for product {$product->nom}");
+                    throw new \Exception(
+                        "Stock insuffisant pour « {$product->nom} » — disponible : {$product->stock_quantity}, demandé : {$item['quantity']}."
+                    );
                 }
 
                 $salesInvoice->items()->create([
-                    'product_id' => $product->id,
+                    'product_id'   => $product->id,
                     'product_name' => $product->nom,
-                    'quantity' => $item['quantity'],
-                    'unit_price' => $item['unit_price'],
-                    'total_price' => $item['quantity'] * $item['unit_price'],
+                    'quantity'     => $item['quantity'],
+                    'unit_price'   => $item['unit_price'],
+                    'total_price'  => $item['quantity'] * $item['unit_price'],
                 ]);
 
                 $product->decrement('stock_quantity', $item['quantity']);
             }
 
-            /*
-            |----------------------------------------
-            | 6️⃣ UPDATE TOTALS
-            |----------------------------------------
-            */
             $salesInvoice->updateTotals();
-        });
+        }); } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('sales_invoices.index')
-            ->with('success', 'Sales invoice updated successfully.');
+            ->with('success', 'Facture de vente mise à jour avec succès.');
     }
 
     /**
@@ -272,17 +260,19 @@ class SalesInvoiceController extends Controller
      */
     public function destroy(SalesInvoice $salesInvoice)
     {
-        DB::transaction(function () use ($salesInvoice) {
-
-            foreach ($salesInvoice->items as $item) {
-                $item->product?->increment('stock_quantity', $item->quantity);
-            }
-
-            $salesInvoice->items()->delete();
-            $salesInvoice->delete();
-        });
+        try {
+            DB::transaction(function () use ($salesInvoice) {
+                foreach ($salesInvoice->items as $item) {
+                    $item->product?->increment('stock_quantity', $item->quantity);
+                }
+                $salesInvoice->items()->delete();
+                $salesInvoice->delete();
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('sales_invoices.index')
-            ->with('success', 'Sales invoice deleted successfully.');
+            ->with('success', 'Facture de vente supprimée avec succès.');
     }
 }

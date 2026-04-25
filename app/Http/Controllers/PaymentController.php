@@ -24,7 +24,7 @@ class PaymentController extends Controller
         if ($purchaseInvoice->status === 'paid') {
             return redirect()
                 ->route('purchase_invoices.show', $purchaseInvoice->uuid)
-                ->with('error', 'Invoice is already fully paid.');
+                ->with('error', 'La facture est déjà entièrement réglée.');
         }
 
         $paymentMethod = PaymentMethod::where('uuid', $request->payment_method_uuid)->firstOrFail();
@@ -35,7 +35,7 @@ class PaymentController extends Controller
         if ($request->amount > $remaining) {
             return redirect()
                 ->route('purchase_invoices.show', $purchaseInvoice->uuid)
-                ->with('error', 'Payment exceeds remaining amount.');
+                ->with('error', 'Le montant dépasse le solde restant.');
         }
 
         Payment::create([
@@ -51,7 +51,7 @@ class PaymentController extends Controller
 
         return redirect()
             ->route('purchase_invoices.show', $purchaseInvoice->uuid)
-            ->with('success', 'Payment recorded successfully.');
+            ->with('success', 'Paiement enregistré avec succès.');
     }
 
     public function storeSalesPayment(Request $request, $invoiceUuid)
@@ -68,7 +68,7 @@ class PaymentController extends Controller
         if ($salesInvoice->status === 'paid') {
             return redirect()
                 ->route('sales_invoices.show', $salesInvoice->uuid)
-                ->with('error', 'Invoice is already fully paid.');
+                ->with('error', 'La facture est déjà entièrement réglée.');
         }
 
         $paymentMethod = PaymentMethod::where('uuid', $request->payment_method_uuid)->firstOrFail();
@@ -80,7 +80,7 @@ class PaymentController extends Controller
         if ($request->amount > $remaining) {
             return redirect()
                 ->route('sales_invoices.show', $salesInvoice->uuid)
-                ->with('error', 'Payment exceeds remaining amount.');
+                ->with('error', 'Le montant dépasse le solde restant.');
         }
 
         Payment::create([
@@ -96,6 +96,6 @@ class PaymentController extends Controller
 
         return redirect()
             ->route('sales_invoices.show', $salesInvoice->uuid)
-            ->with('success', 'Payment recorded successfully.');
+            ->with('success', 'Paiement enregistré avec succès.');
     }
 }

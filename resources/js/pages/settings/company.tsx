@@ -6,7 +6,6 @@ import { Textarea } from '@/components/ui/textarea';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { toast } from 'sonner';
 import { router } from '@inertiajs/react';
 import { Building2, MapPin, Phone, Mail, Hash, Save } from 'lucide-react';
 import type { BreadcrumbItem } from '@/types';
@@ -51,10 +50,7 @@ export default function CompanyPage() {
     const { register, handleSubmit, formState: { errors, isSubmitting } } = form;
 
     function onSubmit(values: FormValues) {
-        router.put('/settings/company', values, {
-            onSuccess: () => toast.success('Company profile saved.'),
-            onError: () => toast.error('Failed to save.'),
-        });
+        router.put('/settings/company', values);
     }
 
     return (

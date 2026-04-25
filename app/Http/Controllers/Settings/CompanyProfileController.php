@@ -32,6 +32,6 @@ class CompanyProfileController extends Controller
 
         CompanyProfile::updateOrCreate(['id' => 1], $validated);
 
-        return back()->with('success', 'Company profile updated successfully.');
+        return back()->with('success', 'Profil de l\'entreprise mis à jour avec succès.');
     }
 }

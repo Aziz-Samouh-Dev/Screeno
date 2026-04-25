@@ -27,7 +27,7 @@ export default function Edit({ invoice, suppliers, products }: Props) {
     const breadcrumbs: BreadcrumbItem[] = [
         { title: "Factures d'achat", href: '/purchase_invoices' },
         { title: invoice.code,        href: `/purchase_invoices/${invoice.uuid}` },
-        { title: 'Edit',              href: `/purchase_invoices/${invoice.uuid}/edit` },
+        { title: 'Modifier',           href: `/purchase_invoices/${invoice.uuid}/edit` },
     ];
 
     const defaultValues: InvoiceFormValues = {
@@ -35,10 +35,12 @@ export default function Edit({ invoice, suppliers, products }: Props) {
         invoice_date: invoice.invoice_date,
         notes:        invoice.notes,
         items: invoice.items.map(i => ({
-            product_id: i.product_id,
+            product_id:   i.product_id,
             product_name: i.product_name,
-            quantity:   i.quantity,
-            unit_price: i.unit_price,
+            quantity:     i.quantity,
+            unit_price:   i.unit_price,
+            sale_price:   0,
+            is_new:       false,
         })),
     };
 

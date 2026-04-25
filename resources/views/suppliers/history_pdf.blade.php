@@ -13,10 +13,10 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1a1a1a; bac
 .co-name  { font-size: 18px; font-weight: 900; color: #1e293b; }
 .co-meta  { font-size: 8px; color: #64748b; line-height: 1.8; margin-top: 5px; }
 .doc-label { font-size: 26px; font-weight: 900; color: #1e293b; text-align: right; letter-spacing: -1px; }
-.doc-sub   { font-size: 10px; font-weight: 700; color: #2563eb; text-align: right; margin-top: 3px; font-family: "Courier New", monospace; }
+.doc-sub   { font-size: 10px; font-weight: 700; color: #6d28d9; text-align: right; margin-top: 3px; font-family: "Courier New", monospace; }
 .doc-meta  { text-align: right; margin-top: 6px; font-size: 8px; color: #64748b; }
 
-/* ── Client info + Summary ── */
+/* ── Supplier info + Summary ── */
 .bts { width: 100%; margin-bottom: 16px; }
 .bts td { vertical-align: top; }
 .section-lbl  { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid #e2e8f0; }
@@ -39,9 +39,9 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1a1a1a; bac
 
 /* ── Invoice cards ── */
 .card { border: 1px solid #e2e8f0; margin-bottom: 10px; page-break-inside: avoid; }
-.card-hd { background: #eff6ff; padding: 8px 12px; }
+.card-hd { background: #f5f3ff; padding: 8px 12px; }
 .card-hd td { vertical-align: middle; }
-.card-code { font-size: 11px; font-weight: 900; font-family: "Courier New", monospace; color: #2563eb; }
+.card-code { font-size: 11px; font-weight: 900; font-family: "Courier New", monospace; color: #6d28d9; }
 .card-date { font-size: 8px; color: #64748b; margin-left: 10px; }
 .sbadge         { font-size: 7.5px; font-weight: 700; padding: 2px 7px; border: 1px solid; }
 .sbadge-paid    { background: #f0fdf4; color: #15803d; border-color: #bbf7d0; }
@@ -62,13 +62,6 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1a1a1a; bac
 .card-ft td { font-size: 8.5px; }
 .card-total { font-weight: 900; text-align: right; color: #1e293b; font-family: "Courier New", monospace; }
 .notes-row { padding: 5px 12px; font-size: 8px; color: #94a3b8; font-style: italic; border-top: 1px solid #f1f5f9; }
-
-/* ── Return cards ── */
-.ret-card { border: 1px solid #fce7f3; margin-bottom: 10px; page-break-inside: avoid; }
-.ret-hd   { background: #fdf2f8; padding: 8px 12px; }
-.ret-hd td { vertical-align: middle; }
-.ret-date { font-size: 10px; font-weight: 700; color: #9d174d; }
-.ret-inv  { font-size: 8px; color: #64748b; margin-left: 10px; }
 
 /* ── Payments table ── */
 .pay-title { font-size: 7px; font-weight: 700; text-transform: uppercase; letter-spacing: 1.5px; color: #94a3b8; margin-top: 18px; margin-bottom: 5px; padding-bottom: 3px; border-bottom: 1px solid #e2e8f0; }
@@ -121,22 +114,22 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1a1a1a; bac
         </div>
     </td>
     <td style="width:45%; vertical-align:top; text-align:right">
-        <div class="doc-label">HISTORIQUE CLIENT</div>
-        <div class="doc-sub">{{ $client->nom }}</div>
+        <div class="doc-label">HISTORIQUE FOURNISSEUR</div>
+        <div class="doc-sub">{{ $supplier->nom }}</div>
         <div class="doc-meta">Généré le {{ now()->format('d/m/Y H:i') }}</div>
     </td>
 </tr></table>
 
-{{-- CLIENT + SUMMARY --}}
+{{-- SUPPLIER + SUMMARY --}}
 <table class="bts"><tr>
     <td style="width:48%; padding-right:20px">
-        <div class="section-lbl">Informations client</div>
-        <div class="party-name">{{ $client->nom }}</div>
+        <div class="section-lbl">Informations fournisseur</div>
+        <div class="party-name">{{ $supplier->nom }}</div>
         <div class="party-detail">
-            @if($client->email)    {{ $client->email }}<br>@endif
-            @if($client->telephone)Tél : {{ $client->telephone }}<br>@endif
-            @if($client->adresse)  {{ $client->adresse }}<br>@endif
-            @if($client->ville)    {{ $client->ville }}@endif
+            @if($supplier->email)    {{ $supplier->email }}<br>@endif
+            @if($supplier->telephone)Tél : {{ $supplier->telephone }}<br>@endif
+            @if($supplier->adresse)  {{ $supplier->adresse }}<br>@endif
+            @if($supplier->ville)    {{ $supplier->ville }}@endif
         </div>
     </td>
     <td style="width:52%">
@@ -144,20 +137,14 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1a1a1a; bac
         <table class="sum-box" style="width:100%; margin-top:4px">
             <tr><td>
                 <table class="sum-row" style="width:100%"><tr>
-                    <td class="sum-l">Total facturé</td>
-                    <td class="sum-r">{{ number_format($totalInvoiced, 2, ',', ' ') }} MAD</td>
+                    <td class="sum-l">Total acheté</td>
+                    <td class="sum-r">{{ number_format($totalPurchased, 2, ',', ' ') }} MAD</td>
                 </tr></table>
             </td></tr>
             <tr><td>
                 <table class="sum-row" style="width:100%"><tr>
-                    <td class="sum-l">Total encaissé</td>
+                    <td class="sum-l">Total réglé</td>
                     <td class="sum-r" style="color:#16a34a">{{ number_format($totalPaid, 2, ',', ' ') }} MAD</td>
-                </tr></table>
-            </td></tr>
-            <tr><td>
-                <table class="sum-row" style="width:100%"><tr>
-                    <td class="sum-l">Total retourné</td>
-                    <td class="sum-r" style="color:#be123c">{{ number_format($totalReturned, 2, ',', ' ') }} MAD</td>
                 </tr></table>
             </td></tr>
             <tr><td>
@@ -170,9 +157,9 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1a1a1a; bac
     </td>
 </tr></table>
 
-{{-- FACTURES DE VENTE --}}
+{{-- FACTURES D'ACHAT --}}
 @if($invoices->count())
-<div class="sec">Factures de vente &nbsp;({{ $invoices->count() }})</div>
+<div class="sec">Factures d'achat &nbsp;({{ $invoices->count() }})</div>
 @foreach($invoices as $inv)
 <div class="card">
     <table class="card-hd" style="width:100%"><tr>
@@ -219,45 +206,6 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1a1a1a; bac
 @endforeach
 @endif
 
-{{-- RETOURS --}}
-@if($returns->count())
-<div class="sec" style="color:#9d174d; border-color:#9d174d">Retours de vente &nbsp;({{ $returns->count() }})</div>
-@foreach($returns as $ret)
-<div class="ret-card">
-    <table class="ret-hd" style="width:100%"><tr>
-        <td>
-            <span class="ret-date">Retour du {{ $ret['created_at'] }}</span>
-            @if(!empty($ret['invoice_code']))<span class="ret-inv">· Facture : {{ $ret['invoice_code'] }}</span>@endif
-        </td>
-        <td style="text-align:right">
-            <span class="bold mono" style="font-size:10px; color:#9d174d">{{ number_format($ret['total_amount'], 2, ',', ' ') }} MAD</span>
-        </td>
-    </tr></table>
-    @if(count($ret['items']))
-    <table class="card-it">
-        <thead><tr>
-            <th>Désignation</th>
-            <th class="c" style="width:70px">Qté ret.</th>
-            <th class="r" style="width:110px">Prix unit.</th>
-            <th class="r" style="width:110px">Total ret.</th>
-        </tr></thead>
-        <tbody>
-            @foreach($ret['items'] as $item)
-            <tr>
-                <td class="bold">{{ $item['product_name'] }}</td>
-                <td class="c">{{ $item['quantity'] }}</td>
-                <td class="r mono">{{ number_format($item['unit_price'], 2, ',', ' ') }} MAD</td>
-                <td class="r mono bold" style="color:#9d174d">{{ number_format($item['total_price'], 2, ',', ' ') }} MAD</td>
-            </tr>
-            @endforeach
-        </tbody>
-    </table>
-    @endif
-    @if($ret['notes'])<div class="notes-row">{{ $ret['notes'] }}</div>@endif
-</div>
-@endforeach
-@endif
-
 {{-- PAIEMENTS --}}
 @if($payments->count())
 <div class="pay-title">Historique des paiements &nbsp;({{ $payments->count() }})</div>
@@ -266,22 +214,22 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1a1a1a; bac
         <th>Date</th>
         <th>Facture</th>
         <th>Méthode</th>
-        <th>Notes</th>
+        <th>Référence</th>
         <th class="r">Montant</th>
     </tr></thead>
     <tbody>
         @foreach($payments as $p)
         <tr>
             <td class="bold">{{ $p['created_at'] }}</td>
-            <td class="mono" style="color:#2563eb">{{ $p['invoice_code'] ?? '—' }}</td>
+            <td class="mono" style="color:#6d28d9">{{ $p['invoice_code'] ?? '—' }}</td>
             <td>{{ $p['payment_method'] ?? '—' }}</td>
-            <td style="color:#94a3b8;font-style:italic">{{ $p['notes'] ?? '—' }}</td>
+            <td style="color:#94a3b8">{{ $p['reference'] ?? '—' }}</td>
             <td class="r">{{ number_format($p['amount'], 2, ',', ' ') }} MAD</td>
         </tr>
         @endforeach
     </tbody>
     <tfoot><tr>
-        <td colspan="4" style="text-align:right">Total encaissé</td>
+        <td colspan="4" style="text-align:right">Total réglé</td>
         <td class="r">{{ number_format($payments->sum('amount'), 2, ',', ' ') }} MAD</td>
     </tr></tfoot>
 </table>
@@ -292,20 +240,14 @@ body { font-family: DejaVu Sans, sans-serif; font-size: 9px; color: #1a1a1a; bac
     <table class="gt-box" style="width:100%">
         <tr><td>
             <table class="gt-row" style="width:100%"><tr>
-                <td class="gt-l">Total facturé</td>
-                <td class="gt-r">{{ number_format($totalInvoiced, 2, ',', ' ') }} MAD</td>
+                <td class="gt-l">Total acheté</td>
+                <td class="gt-r">{{ number_format($totalPurchased, 2, ',', ' ') }} MAD</td>
             </tr></table>
         </td></tr>
         <tr><td>
             <table class="gt-row" style="width:100%"><tr>
-                <td class="gt-l">— Total encaissé</td>
+                <td class="gt-l">— Total réglé</td>
                 <td class="gt-r" style="color:#16a34a">{{ number_format($totalPaid, 2, ',', ' ') }} MAD</td>
-            </tr></table>
-        </td></tr>
-        <tr><td>
-            <table class="gt-row" style="width:100%"><tr>
-                <td class="gt-l">— Total retourné</td>
-                <td class="gt-r" style="color:#be123c">{{ number_format($totalReturned, 2, ',', ' ') }} MAD</td>
             </tr></table>
         </td></tr>
         <tr><td>

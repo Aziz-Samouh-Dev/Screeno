@@ -140,7 +140,7 @@ class ProduitController extends Controller
 
         return redirect()
             ->route('produits.index')
-            ->with('success', 'Produit created successfully.');
+            ->with('success', 'Produit créé avec succès.');
     }
 
     /**
@@ -199,7 +199,7 @@ class ProduitController extends Controller
 
         return redirect()
             ->route('produits.index')
-            ->with('success', 'Produit updated successfully.');
+            ->with('success', 'Produit mis à jour avec succès.');
     }
 
     /**
@@ -215,7 +215,7 @@ class ProduitController extends Controller
 
         return redirect()
             ->route('produits.index')
-            ->with('success', 'Produit deleted successfully.');
+            ->with('success', 'Produit supprimé avec succès.');
     }
 
     public function bulkDelete(Request $request)
@@ -231,6 +231,6 @@ class ProduitController extends Controller
             $produit->delete();
         }
 
-        return redirect()->route('produits.index')->with('success', count($uuids).' products deleted.');
+        return redirect()->route('produits.index')->with('success', count($uuids).' produit(s) supprimé(s) avec succès.');
     }
 }

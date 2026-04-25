@@ -29,7 +29,7 @@ export default function Create({ invoices, selectedInvoice, returnableItems = []
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="New Sales Return" />
+            <Head title="Nouveau retour de vente" />
 
             <div className="flex flex-col gap-6 p-6">
 
@@ -39,8 +39,8 @@ export default function Create({ invoices, selectedInvoice, returnableItems = []
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900">New Sales Return</h1>
-                        <p className="text-sm text-slate-400">Return products and restore inventory</p>
+                        <h1 className="text-xl font-bold text-slate-900">Nouveau retour de vente</h1>
+                        <p className="text-sm text-slate-400">Retourner des produits et restaurer le stock</p>
                     </div>
                 </div>
 

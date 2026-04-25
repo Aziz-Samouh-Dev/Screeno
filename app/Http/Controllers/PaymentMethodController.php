@@ -45,7 +45,7 @@ class PaymentMethodController extends Controller
 
         PaymentMethod::create($validated);
 
-        return redirect()->back()->with('success', 'Payment method created successfully.');
+        return redirect()->back()->with('success', 'Méthode de paiement créée avec succès.');
     }
 
     /**
@@ -62,7 +62,7 @@ class PaymentMethodController extends Controller
 
         $paymentMethod->update($validated);
 
-        return redirect()->back()->with('success', 'Payment method updated successfully.');
+        return redirect()->back()->with('success', 'Méthode de paiement mise à jour avec succès.');
     }
 
     /**
@@ -72,6 +72,6 @@ class PaymentMethodController extends Controller
     {
         $paymentMethod->delete();
 
-        return redirect()->back()->with('success', 'Payment method deleted successfully.');
+        return redirect()->back()->with('success', 'Méthode de paiement supprimée avec succès.');
     }
 }

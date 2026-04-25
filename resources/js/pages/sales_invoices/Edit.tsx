@@ -35,9 +35,16 @@ export default function Edit({ invoice, clients, products }: Props) {
         })),
     };
 
+    // When editing, the backend restores original quantities before checking stock.
+    // Mirror this on the frontend so the stock display is accurate.
+    const reservedQty = invoice.items.reduce<Record<number, number>>((acc, i) => {
+        acc[i.product_id] = i.quantity;
+        return acc;
+    }, {});
+
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Edit — ${invoice.code}`} />
+            <Head title={`Modifier — ${invoice.code}`} />
 
             <div className="flex flex-col gap-6 p-6">
 
@@ -64,6 +71,7 @@ export default function Edit({ invoice, clients, products }: Props) {
                             clients={clients}
                             products={products}
                             defaultValues={defaultValues}
+                            reservedQty={reservedQty}
                             onSubmit={(data) => {
                                 router.post(`/sales_invoices/${invoice.uuid}`, {
                                     ...data, _method: 'put',

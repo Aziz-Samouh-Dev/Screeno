@@ -62,6 +62,8 @@ Route::middleware(['auth', 'verified'])->group(function () {
         ->name('clients.export');
 
     // SUPPLIERS
+    Route::get('/suppliers/{supplier}/history/pdf', [SupplierController::class, 'historyPdf'])
+        ->name('suppliers.history.pdf');
     Route::resource('suppliers', SupplierController::class);
     Route::post('/suppliers/bulk-delete', [SupplierController::class, 'bulkDelete'])
         ->name('suppliers.bulk-delete');
@@ -84,14 +86,17 @@ Route::middleware(['auth', 'verified'])->group(function () {
     ->name('purchase_invoices.download');
 
 
+    Route::get('/sales_invoices/{salesInvoice}/pdf', [SalesInvoiceController::class, 'downloadPdf'])
+        ->name('sales_invoices.pdf');
     Route::resource('sales_invoices', SalesInvoiceController::class);
 
     // Route::resource('sales_returns', SalesReturnController::class);
     // Route::get('sales_returns/returnable-items/{invoice}', [SalesReturnController::class, 'getReturnableItemsForInvoice']);
     
     Route::get('sales_returns/returnable-items/{invoice:uuid}', [SalesReturnController::class, 'getReturnableItemsForInvoice'])
-    ->name('sales_returns.returnable_items');
- 
+        ->name('sales_returns.returnable_items');
+    Route::get('/sales_returns/{salesReturn}/pdf', [SalesReturnController::class, 'downloadPdf'])
+        ->name('sales_returns.pdf');
     Route::resource('sales_returns', SalesReturnController::class);
 
     // Paiment Parts

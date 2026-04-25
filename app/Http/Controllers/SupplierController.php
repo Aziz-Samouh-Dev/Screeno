@@ -2,7 +2,9 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanyProfile;
 use App\Models\Supplier;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
 use Symfony\Component\HttpFoundation\StreamedResponse;
@@ -130,7 +132,7 @@ class SupplierController extends Controller
 
         return redirect()
             ->route('suppliers.index')
-            ->with('success', 'Supplier created successfully.');
+            ->with('success', 'Fournisseur créé avec succès.');
     }
 
     /**
@@ -180,7 +182,7 @@ class SupplierController extends Controller
 
         return redirect()
             ->route('suppliers.index')
-            ->with('success', 'Supplier updated successfully.');
+            ->with('success', 'Fournisseur mis à jour avec succès.');
     }
 
     /**
@@ -192,7 +194,7 @@ class SupplierController extends Controller
 
         return redirect()
             ->route('suppliers.index')
-            ->with('success', 'Supplier deleted successfully.');
+            ->with('success', 'Fournisseur supprimé avec succès.');
     }
 
     /**
@@ -209,7 +211,66 @@ class SupplierController extends Controller
 
         return redirect()
             ->route('suppliers.index')
-            ->with('success', $deleted.' suppliers deleted successfully.');
+            ->with('success', $deleted.' fournisseur(s) supprimé(s) avec succès.');
+    }
+
+    /**
+     * Download supplier history as PDF
+     */
+    public function historyPdf(Request $request, Supplier $supplier)
+    {
+        $invoicesQuery = $supplier->purchaseInvoices()->with('items')->orderByDesc('invoice_date');
+        $paymentsQuery = $supplier->payments()->with(['purchaseInvoice', 'paymentMethod'])->orderByDesc('payment_date');
+
+        if ($request->date_from) {
+            $invoicesQuery->where('invoice_date', '>=', $request->date_from);
+            $paymentsQuery->where('payment_date', '>=', $request->date_from);
+        }
+        if ($request->date_to) {
+            $invoicesQuery->where('invoice_date', '<=', $request->date_to);
+            $paymentsQuery->where('payment_date', '<=', $request->date_to);
+        }
+        if ($request->status && $request->status !== 'all') {
+            $invoicesQuery->where('status', $request->status);
+        }
+
+        $invoices = $invoicesQuery->get()->map(fn($inv) => [
+            'code'             => $inv->code,
+            'invoice_date'     => $inv->invoice_date,
+            'created_at'       => $inv->created_at->format('d/m/Y H:i'),
+            'total_amount'     => (float) $inv->total_amount,
+            'paid_amount'      => (float) $inv->paid_amount,
+            'remaining_amount' => (float) $inv->remaining_amount,
+            'status'           => $inv->status,
+            'notes'            => $inv->notes,
+            'items'            => $inv->items->map(fn($i) => [
+                'product_name' => $i->product_name,
+                'quantity'     => $i->quantity,
+                'unit_price'   => (float) $i->unit_price,
+                'total_price'  => (float) $i->total_price,
+            ]),
+        ]);
+
+        $payments = $paymentsQuery->get()->map(fn($p) => [
+            'amount'         => (float) $p->amount,
+            'payment_date'   => $p->payment_date,
+            'created_at'     => $p->created_at->format('d/m/Y H:i'),
+            'reference'      => $p->reference,
+            'payment_method' => $p->paymentMethod?->name,
+            'notes'          => $p->notes,
+            'invoice_code'   => $p->purchaseInvoice?->code,
+        ]);
+
+        $totalPurchased = $invoices->sum('total_amount');
+        $totalPaid      = $payments->sum('amount');
+        $balance        = $totalPurchased - $totalPaid;
+
+        $pdf = Pdf::loadView('suppliers.history_pdf', compact(
+            'supplier', 'invoices', 'payments',
+            'totalPurchased', 'totalPaid', 'balance'
+        ) + ['company' => (CompanyProfile::first() ?? new CompanyProfile())->toArray()])->setPaper('a4', 'portrait');
+
+        return $pdf->download("historique-{$supplier->nom}.pdf");
     }
 
     /**

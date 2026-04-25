@@ -73,7 +73,7 @@ export default function Edit() {
             onFinish: () => setProcessing(false),
             onError:  (errors) => {
                 const first = Object.values(errors)[0];
-                toast.error(first ?? 'Please fix the errors below.');
+                toast.error(first ?? 'Veuillez corriger les erreurs ci-dessous.');
             },
         });
     }

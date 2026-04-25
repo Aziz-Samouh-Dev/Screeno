@@ -1,25 +1,21 @@
 "use client"
 
-import { useMemo } from "react"
+import { useMemo, useState, useRef, useEffect } from "react"
 import { useForm, useFieldArray } from "react-hook-form"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import {
-    Select,
-    SelectContent,
-    SelectItem,
-    SelectTrigger,
-    SelectValue,
-} from "@/components/ui/select"
-import { Plus, Trash2, Save, AlertTriangle, ShoppingCart } from "lucide-react"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Plus, Trash2, Save, AlertTriangle, ShoppingCart, ChevronDown, Search } from "lucide-react"
 
 /* ================= TYPES ================= */
 
 export interface Client {
     id: number
     nom: string
+    email?: string
+    telephone?: string
 }
 
 export interface Product {
@@ -50,10 +46,126 @@ interface Props {
     defaultValues: InvoiceFormValues
     onSubmit: (data: InvoiceFormValues) => void
     processing?: boolean
+    /** product_id → original quantity already sold in the invoice being edited (used to compute available stock for edit mode) */
+    reservedQty?: Record<number, number>
 }
 
 const fmtMAD = (n: number) =>
     Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2 }) + ' MAD'
+
+/* ================= COMBOBOX ================= */
+
+function EntityCombobox({
+    items,
+    value,
+    onChange,
+    placeholder,
+    onCreateNew,
+    createLabel,
+}: {
+    items: Client[]
+    value: number | null | undefined
+    onChange: (id: number | null) => void
+    placeholder: string
+    onCreateNew?: () => void
+    createLabel?: string
+}) {
+    const [open, setOpen] = useState(false)
+    const [search, setSearch] = useState('')
+    const ref = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        const handle = (e: MouseEvent) => {
+            if (ref.current && !ref.current.contains(e.target as Node)) {
+                setOpen(false)
+                setSearch('')
+            }
+        }
+        document.addEventListener('mousedown', handle)
+        return () => document.removeEventListener('mousedown', handle)
+    }, [])
+
+    const filtered = items.filter(item =>
+        item.nom.toLowerCase().includes(search.toLowerCase()) ||
+        item.email?.toLowerCase().includes(search.toLowerCase()) ||
+        item.telephone?.includes(search)
+    )
+
+    const selected = items.find(i => i.id === value)
+
+    return (
+        <div ref={ref} className="relative">
+            <button
+                type="button"
+                onClick={() => setOpen(!open)}
+                className="flex h-10 w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm hover:border-slate-300 transition-colors"
+            >
+                <div className="flex flex-col items-start min-w-0 flex-1">
+                    {selected ? (
+                        <>
+                            <span className="font-semibold text-slate-900 truncate leading-tight">{selected.nom}</span>
+                            {(selected.telephone || selected.email) && (
+                                <span className="text-xs text-slate-400 truncate leading-tight">
+                                    {selected.telephone || selected.email}
+                                </span>
+                            )}
+                        </>
+                    ) : (
+                        <span className="text-slate-400">{placeholder}</span>
+                    )}
+                </div>
+                <ChevronDown className={`h-4 w-4 text-slate-400 shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+                <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+                    <div className="p-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 px-2 py-1.5 bg-slate-50 rounded-lg">
+                            <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <input
+                                autoFocus
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Rechercher..."
+                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                            />
+                        </div>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto">
+                        {filtered.length > 0 ? filtered.map(item => (
+                            <button
+                                key={item.id}
+                                type="button"
+                                className={`w-full text-left px-3 py-2.5 hover:bg-slate-50 flex flex-col gap-0.5 transition-colors ${value === item.id ? 'bg-blue-50' : ''}`}
+                                onClick={() => { onChange(item.id); setOpen(false); setSearch('') }}
+                            >
+                                <span className="font-semibold text-slate-900 text-sm">{item.nom}</span>
+                                <div className="flex gap-3">
+                                    {item.telephone && <span className="text-xs text-slate-400">{item.telephone}</span>}
+                                    {item.email && <span className="text-xs text-slate-400">{item.email}</span>}
+                                </div>
+                            </button>
+                        )) : (
+                            <p className="px-3 py-4 text-sm text-center text-slate-400">Aucun résultat</p>
+                        )}
+                    </div>
+                    {onCreateNew && (
+                        <div className="border-t border-slate-100 p-2">
+                            <button
+                                type="button"
+                                onClick={() => { onCreateNew(); setOpen(false); setSearch('') }}
+                                className="w-full flex items-center gap-2 px-3 py-2 text-sm text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                            >
+                                <Plus className="h-4 w-4" />
+                                {createLabel || 'Nouveau'}
+                            </button>
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    )
+}
 
 /* ================= COMPONENT ================= */
 
@@ -63,8 +175,9 @@ export default function InvoiceForm({
     defaultValues,
     onSubmit,
     processing = false,
+    reservedQty = {},
 }: Props) {
-    const { control, register, handleSubmit, watch, setValue, formState: { errors } } =
+    const { control, register, handleSubmit, watch, setValue } =
         useForm<InvoiceFormValues>({ defaultValues })
 
     const { fields, append, remove } = useFieldArray({ control, name: "items" })
@@ -82,73 +195,55 @@ export default function InvoiceForm({
         [JSON.stringify(items)]
     )
 
-    /* ── helpers ── */
     const getProduct = (id: number | null) =>
         products.find((p) => p.id === Number(id)) ?? null
 
-    const getStock = (productId: number | null) =>
-        getProduct(productId)?.stock_quantity ?? 0
+    /**
+     * Available stock for a product in this form context.
+     * In edit mode, add back the original quantity already in the invoice
+     * (the backend restores it before re-checking, so we mirror that here).
+     */
+    const getAvailableStock = (productId: number | null): number => {
+        if (!productId) return 0
+        const product = getProduct(productId)
+        if (!product) return 0
+        return product.stock_quantity + (reservedQty[productId] ?? 0)
+    }
 
-    const isOverStock = (item: InvoiceItem) =>
+    const isOverStock = (item: InvoiceItem): boolean =>
         item.product_id !== null &&
-        Number(item.quantity) > getStock(item.product_id)
+        Number(item.quantity) > getAvailableStock(item.product_id)
 
     const anyOverStock = items.some(isOverStock)
 
-    /* IDs already selected in other rows — used to disable options */
     const selectedProductIds = useMemo(
         () => items.map(i => i.product_id).filter(Boolean) as number[],
         // eslint-disable-next-line react-hooks/exhaustive-deps
         [JSON.stringify(items)]
     )
 
-    /* ── client change ── */
-    const handleClientChange = (value: string) => {
-        if (value === "new") {
-            setValue("client_id", null)
-            setValue("client_name", "")
-            setValue("client_phone", "")
-        } else {
-            setValue("client_id", Number(value))
-            setValue("client_name", "")
-            setValue("client_phone", "")
-        }
-    }
-
-    /* ── product change — merge if duplicate ── */
     const handleProductChange = (index: number, productId: string) => {
         const product = products.find((p) => p.id === Number(productId))
         if (!product) return
 
-        // Check if this product is already in another row
+        const available = getAvailableStock(product.id)
+
         const existingIndex = items.findIndex(
             (item, i) => i !== index && Number(item.product_id) === product.id
         )
 
         if (existingIndex !== -1) {
-            // Merge: add current qty into the existing row, remove this row
             const currentQty  = Number(items[index]?.quantity) || 1
             const existingQty = Number(items[existingIndex]?.quantity) || 0
-            const stock       = product.stock_quantity
-            const merged      = Math.min(existingQty + currentQty, stock > 0 ? stock : 999999)
-            setValue(`items.${existingIndex}.quantity`, merged)
+            setValue(`items.${existingIndex}.quantity`, Math.min(existingQty + currentQty, available || existingQty + currentQty))
             remove(index)
         } else {
             setValue(`items.${index}.product_id`, product.id)
             setValue(`items.${index}.unit_price`, product.sale_price)
-            setValue(`items.${index}.quantity`, 1)
+            setValue(`items.${index}.quantity`, Math.min(1, available) || 1)
         }
     }
 
-    /* ── qty change with stock clamp ── */
-    const handleQtyChange = (index: number, raw: string) => {
-        const productId = items[index]?.product_id
-        const stock     = getStock(productId)
-        const qty       = Math.max(1, Math.min(Number(raw) || 1, stock > 0 ? stock : 999999))
-        setValue(`items.${index}.quantity`, qty)
-    }
-
-    /* All products already used? disable Add button */
     const allProductsUsed = products.length > 0 && selectedProductIds.length >= products.length
 
     return (
@@ -162,26 +257,22 @@ export default function InvoiceForm({
                     <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                         Client <span className="text-red-500">*</span>
                     </Label>
-                    <Select
-                        value={isNewClient ? "new" : clientId?.toString()}
-                        onValueChange={handleClientChange}
-                    >
-                        <SelectTrigger className="h-10 border border-slate-200 rounded-xl">
-                            <SelectValue placeholder="Sélectionner un client" />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {clients.map((client) => (
-                                <SelectItem key={client.id} value={client.id.toString()}>
-                                    {client.nom}
-                                </SelectItem>
-                            ))}
-                            <SelectItem value="new">
-                                <span className="flex items-center gap-2">
-                                    <Plus className="w-3 h-3" /> Nouveau client
-                                </span>
-                            </SelectItem>
-                        </SelectContent>
-                    </Select>
+                    <EntityCombobox
+                        items={clients}
+                        value={isNewClient ? undefined : clientId}
+                        onChange={(id) => {
+                            setValue("client_id", id)
+                            setValue("client_name", "")
+                            setValue("client_phone", "")
+                        }}
+                        placeholder="Sélectionner un client"
+                        onCreateNew={() => {
+                            setValue("client_id", null)
+                            setValue("client_name", "")
+                            setValue("client_phone", "")
+                        }}
+                        createLabel="Nouveau client"
+                    />
 
                     {isNewClient && (
                         <div className="grid grid-cols-2 gap-3 pt-1">
@@ -199,7 +290,7 @@ export default function InvoiceForm({
                     )}
                 </div>
 
-                {/* Invoice date */}
+                {/* Date de facture */}
                 <div className="space-y-2">
                     <Label className="text-xs font-bold text-slate-500 uppercase tracking-wider">
                         Date de facture <span className="text-red-500">*</span>
@@ -213,7 +304,7 @@ export default function InvoiceForm({
                 </div>
             </div>
 
-            {/* ── Items ─────────────────────────────────────────────── */}
+            {/* ── Lignes de facture ──────────────────────────────────── */}
             <section className="space-y-4">
                 <div className="flex justify-between items-center">
                     <h3 className="font-bold text-slate-900 text-sm uppercase tracking-wider">
@@ -232,9 +323,12 @@ export default function InvoiceForm({
                 </div>
 
                 {anyOverStock && (
-                    <div className="flex items-center gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
-                        <AlertTriangle className="w-4 h-4 shrink-0" />
-                        Certains articles dépassent le stock disponible. Les quantités ont été ajustées automatiquement.
+                    <div className="flex items-start gap-2 rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                        <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+                        <span>
+                            Certaines quantités dépassent le stock disponible.
+                            Corrigez-les avant d'enregistrer.
+                        </span>
                     </div>
                 )}
 
@@ -243,7 +337,7 @@ export default function InvoiceForm({
                         <thead className="bg-slate-50 text-xs font-bold uppercase text-slate-500">
                             <tr>
                                 <th className="px-4 py-3 text-left">Produit</th>
-                                <th className="px-4 py-3 w-28 text-center">Stock</th>
+                                <th className="px-4 py-3 w-28 text-center">Stock dispo.</th>
                                 <th className="px-4 py-3 w-28 text-center">Qté</th>
                                 <th className="px-4 py-3 w-32 text-right">Prix unit.</th>
                                 <th className="px-4 py-3 w-32 text-right">Total</th>
@@ -252,46 +346,46 @@ export default function InvoiceForm({
                         </thead>
                         <tbody className="divide-y divide-slate-100">
                             {fields.map((field, index) => {
-                                const productId  = items[index]?.product_id
-                                const product    = getProduct(productId ?? null)
-                                const stock      = product?.stock_quantity ?? 0
-                                const overStock  = isOverStock(items[index])
-                                const noStock    = product !== null && stock === 0
+                                const productId = items[index]?.product_id
+                                const product   = getProduct(productId ?? null)
+                                const available = getAvailableStock(productId ?? null)
+                                const over      = isOverStock(items[index])
+                                const qty       = Number(items[index]?.quantity) || 0
 
                                 return (
-                                    <tr
-                                        key={field.id}
-                                        className={overStock || noStock ? "bg-red-50" : "hover:bg-slate-50"}
-                                    >
-                                        {/* Product */}
+                                    <tr key={field.id} className={over ? "bg-red-50" : "hover:bg-slate-50"}>
+
+                                        {/* Produit */}
                                         <td className="px-4 py-2">
                                             <Select
                                                 value={items[index]?.product_id?.toString() ?? ""}
                                                 onValueChange={(v) => handleProductChange(index, v)}
                                             >
-                                                <SelectTrigger className="h-9 border border-slate-200 rounded-lg">
+                                                <SelectTrigger className={`h-9 border rounded-lg ${over ? 'border-red-300' : 'border-slate-200'}`}>
                                                     <SelectValue placeholder="Sélectionner" />
                                                 </SelectTrigger>
                                                 <SelectContent>
                                                     {products.map((p) => {
+                                                        const effectiveAvail = p.stock_quantity + (reservedQty[p.id] ?? 0)
                                                         const alreadyUsed = selectedProductIds.includes(p.id) &&
                                                             Number(items[index]?.product_id) !== p.id
+                                                        const outOfStock = effectiveAvail <= 0
                                                         return (
                                                             <SelectItem
                                                                 key={p.id}
                                                                 value={p.id.toString()}
-                                                                disabled={alreadyUsed}
+                                                                disabled={alreadyUsed || outOfStock}
                                                             >
                                                                 <span className="flex items-center gap-2">
                                                                     {p.nom}
                                                                     <span className={`text-xs font-mono ${
-                                                                        p.stock_quantity === 0
-                                                                            ? "text-red-500"
-                                                                            : p.stock_quantity <= 10
-                                                                            ? "text-amber-500"
-                                                                            : "text-slate-400"
+                                                                        effectiveAvail <= 0  ? "text-red-500"
+                                                                        : effectiveAvail <= 10 ? "text-amber-500"
+                                                                        : "text-slate-400"
                                                                     }`}>
-                                                                        ({p.stock_quantity} en stock)
+                                                                        {effectiveAvail <= 0
+                                                                            ? "(rupture)"
+                                                                            : `(${effectiveAvail} dispo.)`}
                                                                     </span>
                                                                 </span>
                                                             </SelectItem>
@@ -299,44 +393,50 @@ export default function InvoiceForm({
                                                     })}
                                                 </SelectContent>
                                             </Select>
-                                            {noStock && (
-                                                <p className="text-xs text-red-500 mt-1">Rupture de stock</p>
-                                            )}
                                         </td>
 
-                                        {/* Stock badge */}
+                                        {/* Stock disponible */}
                                         <td className="px-4 py-2 text-center">
                                             {product ? (
                                                 <span className={`inline-block rounded-full px-2 py-0.5 text-xs font-bold font-mono ${
-                                                    stock === 0
-                                                        ? "bg-red-100 text-red-600"
-                                                        : stock <= 10
-                                                        ? "bg-amber-100 text-amber-600"
-                                                        : "bg-green-100 text-green-600"
+                                                    available <= 0  ? "bg-red-100 text-red-600"
+                                                    : available <= 10 ? "bg-amber-100 text-amber-600"
+                                                    : "bg-green-100 text-green-600"
                                                 }`}>
-                                                    {stock}
+                                                    {available}
                                                 </span>
-                                            ) : (
-                                                <span className="text-slate-300">—</span>
-                                            )}
+                                            ) : <span className="text-slate-300">—</span>}
                                         </td>
 
-                                        {/* Qty */}
+                                        {/* Qté */}
                                         <td className="px-4 py-2 text-center">
-                                            <Input
-                                                type="number"
-                                                min={1}
-                                                max={stock > 0 ? stock : undefined}
-                                                value={items[index]?.quantity ?? 1}
-                                                disabled={!product || stock === 0}
-                                                onChange={(e) => handleQtyChange(index, e.target.value)}
-                                                className={`h-9 w-20 mx-auto text-center border border-slate-200 rounded-lg ${
-                                                    overStock ? "border-red-400" : ""
-                                                }`}
-                                            />
+                                            <div className="flex flex-col items-center gap-1">
+                                                <Input
+                                                    type="number"
+                                                    min={1}
+                                                    max={available > 0 ? available : undefined}
+                                                    value={qty || ''}
+                                                    disabled={!product || available <= 0}
+                                                    onChange={(e) => {
+                                                        const v = parseInt(e.target.value, 10)
+                                                        setValue(`items.${index}.quantity`, isNaN(v) ? 1 : Math.max(1, v))
+                                                    }}
+                                                    className={`h-9 w-20 mx-auto text-center border rounded-lg ${over ? "border-red-400 bg-red-50 focus-visible:ring-red-400" : "border-slate-200"}`}
+                                                />
+                                                {over && (
+                                                    <span className="text-xs text-red-600 font-medium whitespace-nowrap">
+                                                        max {available}
+                                                    </span>
+                                                )}
+                                                {product && available <= 0 && (
+                                                    <span className="text-xs text-red-600 font-medium">
+                                                        Rupture
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
 
-                                        {/* Unit price */}
+                                        {/* Prix unit. */}
                                         <td className="px-4 py-2">
                                             <Input
                                                 type="number"
@@ -347,12 +447,12 @@ export default function InvoiceForm({
                                             />
                                         </td>
 
-                                        {/* Line total */}
+                                        {/* Total */}
                                         <td className="px-4 py-2 text-right font-semibold text-slate-900 font-mono text-xs">
                                             {fmtMAD((items[index]?.quantity || 0) * (items[index]?.unit_price || 0))}
                                         </td>
 
-                                        {/* Delete */}
+                                        {/* Supprimer */}
                                         <td className="px-4 py-2 text-right">
                                             <Button
                                                 type="button"
@@ -394,7 +494,7 @@ export default function InvoiceForm({
                 />
             </div>
 
-            {/* ── Summary ───────────────────────────────────────────── */}
+            {/* ── Récapitulatif ─────────────────────────────────────── */}
             <div className="w-full md:w-80 ml-auto bg-slate-50 p-6 rounded-2xl border border-slate-100 space-y-3">
                 <div className="flex justify-between text-sm text-slate-500">
                     <span>Sous-total</span>
@@ -410,9 +510,14 @@ export default function InvoiceForm({
                 </div>
             </div>
 
-            {/* ── Submit ────────────────────────────────────────────── */}
+            {/* ── Enregistrer ───────────────────────────────────────── */}
             <div className="flex justify-end">
-                <Button type="submit" disabled={processing || anyOverStock} className="rounded-xl px-6">
+                <Button
+                    type="submit"
+                    disabled={processing || anyOverStock}
+                    className="rounded-xl px-6"
+                    title={anyOverStock ? 'Corrigez les quantités avant d\'enregistrer' : undefined}
+                >
                     <Save className="w-4 h-4 mr-2" />
                     {processing ? 'Enregistrement…' : 'Enregistrer la facture'}
                 </Button>

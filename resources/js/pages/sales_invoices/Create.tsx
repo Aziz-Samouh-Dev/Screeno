@@ -21,7 +21,7 @@ export default function Create({ clients, products }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title="New Sales Invoice" />
+            <Head title="Nouvelle facture de vente" />
 
             <div className="flex flex-col gap-6 p-6">
 
@@ -31,8 +31,8 @@ export default function Create({ clients, products }: Props) {
                         <ArrowLeft className="h-4 w-4" />
                     </Button>
                     <div>
-                        <h1 className="text-xl font-bold text-slate-900">New Sales Invoice</h1>
-                        <p className="text-sm text-slate-400">Create an invoice for your client</p>
+                        <h1 className="text-xl font-bold text-slate-900">Nouvelle facture de vente</h1>
+                        <p className="text-sm text-slate-400">Créer une facture pour votre client</p>
                     </div>
                 </div>
 

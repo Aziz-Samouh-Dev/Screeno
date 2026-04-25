@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\CompanyProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Inertia\Inertia;
@@ -126,7 +127,7 @@ class ClientController extends Controller
 
         return redirect()
             ->route('clients.index')
-            ->with('success', 'Client created successfully.');
+            ->with('success', 'Client créé avec succès.');
     }
 
     /**
@@ -281,7 +282,7 @@ class ClientController extends Controller
 
         return redirect()
             ->route('clients.index')
-            ->with('success', 'Client updated successfully.');
+            ->with('success', 'Client mis à jour avec succès.');
     }
 
     /**
@@ -293,7 +294,7 @@ class ClientController extends Controller
 
         return redirect()
             ->route('clients.index')
-            ->with('success', 'Client deleted successfully.');
+            ->with('success', 'Client supprimé avec succès.');
     }
 
     /**
@@ -310,7 +311,7 @@ class ClientController extends Controller
 
         return redirect()
             ->route('clients.index')
-            ->with('success', $deleted.' clients deleted successfully.');
+            ->with('success', $deleted.' client(s) supprimé(s) avec succès.');
     }
 
     public function exportCsv(): StreamedResponse
@@ -373,6 +374,7 @@ class ClientController extends Controller
         $invoices = $invoicesQuery->get()->map(fn($inv) => [
             'code'             => $inv->code,
             'invoice_date'     => $inv->invoice_date,
+            'created_at'       => $inv->created_at->format('d/m/Y H:i'),
             'total_amount'     => (float) $inv->total_amount,
             'paid_amount'      => (float) $inv->paid_amount,
             'remaining_amount' => (float) $inv->remaining_amount,
@@ -389,6 +391,7 @@ class ClientController extends Controller
         $payments = $paymentsQuery->get()->map(fn($p) => [
             'amount'         => (float) $p->amount,
             'payment_date'   => $p->payment_date,
+            'created_at'     => $p->created_at->format('d/m/Y H:i'),
             'reference'      => $p->reference,
             'payment_method' => $p->paymentMethod?->name,
             'notes'          => $p->notes,
@@ -397,6 +400,7 @@ class ClientController extends Controller
 
         $returns = $returnsQuery->get()->map(fn($r) => [
             'return_date'  => $r->return_date,
+            'created_at'   => $r->created_at->format('d/m/Y H:i'),
             'total_amount' => (float) $r->total_amount,
             'notes'        => $r->notes,
             'invoice_code' => $r->invoice?->code,
@@ -408,7 +412,7 @@ class ClientController extends Controller
             ]),
         ]);
 
-        $company = config('company', []);
+        $company = (CompanyProfile::first() ?? new CompanyProfile())->toArray();
         $totalInvoiced = $invoices->sum('total_amount');
         $totalPaid     = $payments->sum('amount');
         $totalReturned = $returns->sum('total_amount');

@@ -4,7 +4,6 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { toast } from 'sonner';
 import {
     Plus, Search, PackageX, ChevronLeft, ChevronRight,
     Eye, Edit2, Trash2, RotateCcw,
@@ -61,8 +60,7 @@ export default function Index() {
             onConfirm: () => {
                 setProcessing(true);
                 router.delete(`/sales_returns/${uuid}`, {
-                    onSuccess: () => toast.success('Retour supprimé.'),
-                    onFinish:  () => { setProcessing(false); closeConfirm(); },
+                    onFinish: () => { setProcessing(false); closeConfirm(); },
                 });
             },
         });

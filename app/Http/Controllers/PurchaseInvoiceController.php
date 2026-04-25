@@ -2,35 +2,33 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CompanyProfile;
 use App\Models\PaymentMethod;
 use App\Models\Produit;
 use App\Models\PurchaseInvoice;
 use App\Models\PurchaseInvoiceItem;
 use App\Models\Supplier;
-// use Barryvdh\DomPDF\Facade\Pdf;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Inertia\Inertia;
-use Spatie\Browsershot\Browsershot;
-use Spatie\LaravelPdf\Facades\Pdf;
 
 class PurchaseInvoiceController extends Controller
 {
     public function downloadPdf(PurchaseInvoice $invoice)
     {
-        $invoice->load('supplier', 'items');
+        try {
+            $invoice->load(['supplier', 'items', 'payments.paymentMethod']);
 
-        return Pdf::view('purchase_invoices.pdf', compact('invoice'))
-        // return Pdf::view('pages.purchase_invoices.pdf', compact('invoice'))
-            ->format('a4')
-            ->name($invoice->code.'.pdf')
-            ->withBrowsershot(function (Browsershot $browsershot) {
-                $browsershot
-                    ->setNodeBinary('C:/Program Files/nodejs/node.exe')
-                    ->setNpmBinary('C:/Program Files/nodejs/npm.cmd')
-                    ->setChromePath('C:/Program Files/Google/Chrome/Application/chrome.exe');
-            })
-            ->download();
+            $pdf = Pdf::loadView('purchase_invoices.invoice_pdf', [
+                'invoice' => $invoice,
+                'company' => (CompanyProfile::first() ?? new CompanyProfile())->toArray(),
+            ])->setPaper('a4', 'portrait');
+
+            return $pdf->download("{$invoice->code}.pdf");
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', 'Impossible de générer le PDF : ' . $e->getMessage());
+        }
     }
 
     /**
@@ -71,9 +69,8 @@ class PurchaseInvoiceController extends Controller
     public function create()
     {
         return Inertia::render('purchase_invoices/Create', [
-            'suppliers' => Supplier::all(),
-            'products' => Produit::select('id', 'nom', 'purchase_price', 'sale_price', 'stock_quantity')->get(),
-            //                                                                            ^^^^^^^^^^^^^^ ADD THIS
+            'suppliers' => Supplier::select('id', 'nom', 'email', 'telephone')->orderBy('nom')->get(),
+            'products'  => Produit::select('id', 'nom', 'purchase_price', 'sale_price', 'stock_quantity')->get(),
         ]);
     }
 
@@ -100,86 +97,59 @@ class PurchaseInvoiceController extends Controller
             'items.*.is_new' => 'nullable|boolean',
         ]);
 
-        DB::transaction(function () use ($validated) {
+        try {
+            DB::transaction(function () use ($validated) {
 
-            /*
-            |----------------------------------------
-            | 1️⃣ CREATE SUPPLIER IF NEW
-            |----------------------------------------
-            */
-
-            if (! empty($validated['supplier_name'])) {
-
-                $supplier = Supplier::create([
-                    'nom' => $validated['supplier_name'],
-                    'telephone' => $validated['supplier_phone'] ?? null,
-                ]);
-
-            } else {
-
-                $supplier = Supplier::findOrFail($validated['supplier_id']);
-
-            }
-
-            /*
-            |----------------------------------------
-            | 2️⃣ CREATE INVOICE
-            |----------------------------------------
-            */
-
-            $invoice = PurchaseInvoice::create([
-                'supplier_id' => $supplier->id,
-                'invoice_date' => $validated['invoice_date'],
-                'notes' => $validated['notes'] ?? null,
-            ]);
-
-            /*
-            |----------------------------------------
-            | 3️⃣ CREATE ITEMS
-            |----------------------------------------
-            */
-
-            foreach ($validated['items'] as $item) {
-
-                if (! empty($item['is_new'])) {
-
-                    $product = Produit::create([
-                        'nom' => $item['product_name'],
-                        'purchase_price' => $item['unit_price'],
-                        'sale_price' => $item['sale_price'] ?? 0,
-                        'stock_quantity' => 0,
+                if (! empty($validated['supplier_name'])) {
+                    $supplier = Supplier::create([
+                        'nom'       => $validated['supplier_name'],
+                        'telephone' => $validated['supplier_phone'] ?? null,
                     ]);
-
                 } else {
-
-                    $product = Produit::findOrFail($item['product_id']);
-
-                    if ($product->purchase_price != $item['unit_price']) {
-                        $product->update([
-                            'purchase_price' => $item['unit_price'],
-                        ]);
-                    }
-
+                    $supplier = Supplier::findOrFail($validated['supplier_id']);
                 }
 
-                PurchaseInvoiceItem::create([
-                    'purchase_invoice_id' => $invoice->id,
-                    'product_id' => $product->id,
-                    'product_name' => $product->nom,
-                    'unit_price' => $item['unit_price'],
-                    'quantity' => $item['quantity'],
-                    'total_price' => $item['unit_price'] * $item['quantity'],
+                $invoice = PurchaseInvoice::create([
+                    'supplier_id'  => $supplier->id,
+                    'invoice_date' => $validated['invoice_date'],
+                    'notes'        => $validated['notes'] ?? null,
                 ]);
 
-                $product->increment('stock_quantity', $item['quantity']);
-            }
+                foreach ($validated['items'] as $item) {
+                    if (! empty($item['is_new']) && ! empty($item['product_name'])) {
+                        $product = Produit::create([
+                            'nom'            => $item['product_name'],
+                            'purchase_price' => $item['unit_price'],
+                            'sale_price'     => $item['sale_price'] ?? 0,
+                            'stock_quantity' => 0,
+                        ]);
+                    } else {
+                        $product = Produit::findOrFail($item['product_id']);
+                        if ($product->purchase_price != $item['unit_price']) {
+                            $product->update(['purchase_price' => $item['unit_price']]);
+                        }
+                    }
 
-            $invoice->updateTotals();
+                    PurchaseInvoiceItem::create([
+                        'purchase_invoice_id' => $invoice->id,
+                        'product_id'          => $product->id,
+                        'product_name'        => $product->nom,
+                        'unit_price'          => $item['unit_price'],
+                        'quantity'            => $item['quantity'],
+                        'total_price'         => $item['unit_price'] * $item['quantity'],
+                    ]);
 
-        });
+                    $product->increment('stock_quantity', $item['quantity']);
+                }
+
+                $invoice->updateTotals();
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('purchase_invoices.index')
-            ->with('success', 'Purchase invoice created successfully.');
+            ->with('success', 'Facture d\'achat créée avec succès.');
     }
 
     /**
@@ -208,10 +178,9 @@ class PurchaseInvoiceController extends Controller
         $purchaseInvoice->load('items');
 
         return Inertia::render('purchase_invoices/Edit', [
-            'invoice' => $purchaseInvoice,
-            'suppliers' => Supplier::all(),
-            'products' => Produit::select('id', 'nom', 'purchase_price', 'sale_price', 'stock_quantity')->get(),
-            //                                                                            ^^^^^^^^^^^^^^ ADD THIS
+            'invoice'   => $purchaseInvoice,
+            'suppliers' => Supplier::select('id', 'nom', 'email', 'telephone')->orderBy('nom')->get(),
+            'products'  => Produit::select('id', 'nom', 'purchase_price', 'sale_price', 'stock_quantity')->get(),
         ]);
     }
 
@@ -238,109 +207,65 @@ class PurchaseInvoiceController extends Controller
             'items.*.is_new' => 'nullable|boolean',
         ]);
 
-        DB::transaction(function () use ($validated, $purchase_invoice) {
-
-            /*
-            |----------------------------------------
-            | 1️⃣ ROLLBACK OLD STOCK
-            |----------------------------------------
-            */
+        try { DB::transaction(function () use ($validated, $purchase_invoice) {
 
             foreach ($purchase_invoice->items as $oldItem) {
                 $oldItem->product?->decrement('stock_quantity', $oldItem->quantity);
             }
 
-            /*
-            |----------------------------------------
-            | 2️⃣ DELETE OLD ITEMS
-            |----------------------------------------
-            */
-
             $purchase_invoice->items()->delete();
 
-            /*
-            |----------------------------------------
-            | 3️⃣ CREATE OR GET SUPPLIER
-            |----------------------------------------
-            */
-
             if (! empty($validated['supplier_name'])) {
-
                 $supplier = Supplier::create([
-                    'nom' => $validated['supplier_name'],
+                    'nom'       => $validated['supplier_name'],
                     'telephone' => $validated['supplier_phone'] ?? null,
                 ]);
-
             } else {
-
                 $supplier = Supplier::findOrFail($validated['supplier_id']);
-
             }
 
-            /*
-            |----------------------------------------
-            | 4️⃣ UPDATE INVOICE
-            |----------------------------------------
-            */
-
             $purchase_invoice->update([
-                'supplier_id' => $supplier->id,
+                'supplier_id'  => $supplier->id,
                 'invoice_date' => $validated['invoice_date'],
-                'notes' => $validated['notes'] ?? null,
+                'notes'        => $validated['notes'] ?? null,
             ]);
-
-            /*
-            |----------------------------------------
-            | 5️⃣ CREATE ITEMS
-            |----------------------------------------
-            */
 
             foreach ($validated['items'] as $item) {
 
-                if (! empty($item['is_new'])) {
-
+                if (! empty($item['is_new']) && ! empty($item['product_name'])) {
                     $product = Produit::create([
-                        'nom' => $item['product_name'],
+                        'nom'            => $item['product_name'],
                         'purchase_price' => $item['unit_price'],
-                        'sale_price' => $item['sale_price'] ?? 0,
+                        'sale_price'     => $item['sale_price'] ?? 0,
                         'stock_quantity' => 0,
                     ]);
-
                 } else {
-
                     $product = Produit::findOrFail($item['product_id']);
-
                     if ($product->purchase_price != $item['unit_price']) {
-                        $product->update([
-                            'purchase_price' => $item['unit_price'],
-                        ]);
+                        $product->update(['purchase_price' => $item['unit_price']]);
                     }
 
                 }
 
                 $purchase_invoice->items()->create([
-                    'product_id' => $product->id,
+                    'product_id'   => $product->id,
                     'product_name' => $product->nom,
-                    'unit_price' => $item['unit_price'],
-                    'quantity' => $item['quantity'],
-                    'total_price' => $item['unit_price'] * $item['quantity'],
+                    'unit_price'   => $item['unit_price'],
+                    'quantity'     => $item['quantity'],
+                    'total_price'  => $item['unit_price'] * $item['quantity'],
                 ]);
 
                 $product->increment('stock_quantity', $item['quantity']);
             }
 
-            /*
-            |----------------------------------------
-            | 6️⃣ UPDATE TOTALS
-            |----------------------------------------
-            */
-
             $purchase_invoice->updateTotals();
-        });
+        }); } catch (\Exception $e) {
+            return redirect()->back()->withInput()->with('error', $e->getMessage());
+        }
 
         return redirect()
             ->route('purchase_invoices.index')
-            ->with('success', 'Purchase invoice updated successfully.');
+            ->with('success', 'Facture d\'achat mise à jour avec succès.');
     }
 
     // public function downloadPDF(PurchaseInvoice $purchaseInvoice)
@@ -379,19 +304,19 @@ class PurchaseInvoiceController extends Controller
      */
     public function destroy(PurchaseInvoice $purchaseInvoice)
     {
-        DB::transaction(function () use ($purchaseInvoice) {
-
-            foreach ($purchaseInvoice->items()->with('product')->get() as $item) {
-                if ($item->product) {
-                    $item->product->decrement('stock_quantity', $item->quantity);
+        try {
+            DB::transaction(function () use ($purchaseInvoice) {
+                foreach ($purchaseInvoice->items()->with('product')->get() as $item) {
+                    $item->product?->decrement('stock_quantity', $item->quantity);
                 }
-            }
-
-            $purchaseInvoice->items()->delete();
-            $purchaseInvoice->delete();
-        });
+                $purchaseInvoice->items()->delete();
+                $purchaseInvoice->delete();
+            });
+        } catch (\Exception $e) {
+            return redirect()->back()->with('error', $e->getMessage());
+        }
 
         return redirect()->route('purchase_invoices.index')
-            ->with('success', 'Invoice deleted successfully.');
+            ->with('success', 'Facture d\'achat supprimée avec succès.');
     }
 }

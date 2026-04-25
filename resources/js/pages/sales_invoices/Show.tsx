@@ -3,8 +3,7 @@ import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Button } from '@/components/ui/button';
 import PaymentSheet from '@/components/SalesInvoices/PaymentSheet';
-import { ArrowLeft, Edit2, Trash2, Printer, Calendar, CheckCircle2, AlertCircle, RotateCcw } from 'lucide-react';
-import { toast } from 'sonner';
+import { ArrowLeft, Edit2, Trash2, Printer, Calendar, CheckCircle2, AlertCircle, RotateCcw, Download } from 'lucide-react';
 
 interface Company {
     name: string; address?: string; city?: string; country?: string;
@@ -27,7 +26,7 @@ interface Payment {
 }
 
 interface Invoice {
-    uuid: string; code: string; invoice_date: string;
+    uuid: string; code: string; invoice_date: string; created_at: string;
     status: 'paid' | 'partial' | 'unpaid';
     subtotal: string; tax_amount: string; total_amount: string;
     paid_amount: string; remaining_amount: string; notes?: string;
@@ -43,6 +42,7 @@ function statusInfo(s: string) {
 }
 
 function fmt(n: string | number) { return Number(n).toLocaleString('fr-MA', { minimumFractionDigits: 2 }); }
+function fmtDT(d: string) { return new Date(d).toLocaleString('fr-MA', { day: '2-digit', month: '2-digit', year: 'numeric', hour: '2-digit', minute: '2-digit' }); }
 
 export default function Show({ invoice, paymentMethods }: Props) {
     const { company } = usePage().props as { company: Company };
@@ -55,9 +55,7 @@ export default function Show({ invoice, paymentMethods }: Props) {
 
     const handleDelete = () => {
         if (!confirm('Supprimer cette facture ?')) return;
-        router.delete(`/sales_invoices/${invoice.uuid}`, {
-            onSuccess: () => toast.success('Invoice deleted.'),
-        });
+        router.delete(`/sales_invoices/${invoice.uuid}`);
     };
 
     return (
@@ -86,6 +84,10 @@ export default function Show({ invoice, paymentMethods }: Props) {
                         <Button variant="outline" size="sm" className="rounded-xl" onClick={() => window.print()}>
                             <Printer className="mr-2 h-4 w-4" /> Imprimer
                         </Button>
+                        <a href={`/sales_invoices/${invoice.uuid}/pdf`} target="_blank"
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
+                            <Download className="h-4 w-4" /> PDF
+                        </a>
                         <Button variant="outline" size="sm" className="rounded-xl"
                             onClick={() => router.visit(`/sales_returns/create?sales_invoice_id=${invoice.uuid}`)}>
                             <RotateCcw className="mr-2 h-4 w-4" /> Retour
@@ -110,7 +112,7 @@ export default function Show({ invoice, paymentMethods }: Props) {
                             </div>
                             <div className="text-right space-y-1">
                                 <p className="text-xs text-slate-400 uppercase tracking-wide">Date</p>
-                                <p className="font-semibold text-slate-800">{invoice.invoice_date}</p>
+                                <p className="font-semibold text-slate-800">{fmtDT(invoice.created_at)}</p>
                                 <span className={`inline-flex items-center gap-1 rounded-full px-2.5 py-0.5 text-xs font-bold border ${si.cls}`}>
                                     <span className={`w-1.5 h-1.5 rounded-full ${si.dot}`} />{si.label}
                                 </span>
@@ -199,7 +201,7 @@ export default function Show({ invoice, paymentMethods }: Props) {
                                 <span className={`w-1.5 h-1.5 rounded-full ${si.dot}`} />{si.label}
                             </span>
                             <div className="flex items-center justify-end gap-2 text-sm text-slate-500">
-                                <Calendar className="h-4 w-4" />{invoice.invoice_date}
+                                <Calendar className="h-4 w-4" />{fmtDT(invoice.created_at)}
                             </div>
                             {invoice.status !== 'paid' && (
                                 <p className="text-sm font-semibold text-amber-600">

@@ -33,7 +33,7 @@ export default function Edit({ returnData, invoices }: Props) {
 
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
-            <Head title={`Edit Return #${returnData.uuid.slice(0, 8)}`} />
+            <Head title={`Modifier le retour #${returnData.uuid.slice(0, 8)}`} />
 
             <div className="flex flex-col gap-6 p-6">
 
@@ -45,7 +45,7 @@ export default function Edit({ returnData, invoices }: Props) {
                         </Button>
                         <div>
                             <h1 className="text-xl font-bold text-slate-900">Modifier le retour</h1>
-                            <p className="text-sm text-slate-400">Invoice: {returnData.invoice.code}</p>
+                            <p className="text-sm text-slate-400">Facture : {returnData.invoice.code}</p>
                         </div>
                     </div>
                     <Button variant="outline" size="sm" className="rounded-xl"

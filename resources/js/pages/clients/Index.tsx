@@ -11,7 +11,6 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { ConfirmDialog, useConfirmDialog } from '@/components/ui/confirm-dialog';
-import { toast } from 'sonner';
 
 const breadcrumbs: BreadcrumbItem[] = [{ title: 'Clients', href: '/clients' }];
 
@@ -83,8 +82,7 @@ export default function Index() {
             onConfirm: () => {
                 setProcessing(true);
                 router.delete(`/clients/${uuid}`, {
-                    onSuccess: () => toast.success('Client supprimé.'),
-                    onFinish:  () => { setProcessing(false); closeConfirm(); },
+                    onFinish: () => { setProcessing(false); closeConfirm(); },
                 });
             },
         });

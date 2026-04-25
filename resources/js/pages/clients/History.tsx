@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useMemo } from 'react';
-import { Head, router, usePage } from '@inertiajs/react';
+import { Head, router } from '@inertiajs/react';
 import AppLayout from '@/layouts/app-layout';
 import type { BreadcrumbItem } from '@/types';
 import { Button } from '@/components/ui/button';
@@ -84,17 +84,6 @@ interface Client {
     status: 'active' | 'inactive';
 }
 
-interface Company {
-    name: string;
-    address?: string;
-    city?: string;
-    country?: string;
-    phone?: string;
-    email?: string;
-    tax_id?: string;
-    ice?: string;
-}
-
 interface Stats {
     totalSales: number;
     totalPaid: number;
@@ -144,7 +133,6 @@ function fmtDate(s: string) {
 /* ------------------------------------------------------------------ */
 
 export default function ClientHistory({ client, invoices, payments, salesReturns, stats, filters: serverFilters }: Props) {
-    const { company } = usePage().props as { company: Company };
 
     const breadcrumbs: BreadcrumbItem[] = [
         { title: 'Clients', href: '/clients' },
@@ -237,10 +225,6 @@ export default function ClientHistory({ client, invoices, payments, salesReturns
         if (item.type === 'return')  router.visit(`/sales_returns/${item.id}`);
     };
 
-    const totalInvoiced = invoices.reduce((s, i) => s + Number(i.total_amount), 0);
-    const totalPaid     = payments.reduce((s, p) => s + Number(p.amount), 0);
-    const totalReturned = salesReturns.reduce((s, r) => s + Number(r.total_amount), 0);
-
     /* ----------------------------------------------------------------
        Render
     ---------------------------------------------------------------- */
@@ -248,219 +232,6 @@ export default function ClientHistory({ client, invoices, payments, salesReturns
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title={`${client.nom} — Full History`} />
-
-            {/* ===== PDF TEMPLATE (off-screen, captured by html2pdf) ===== */}
-            <div ref={pdfRef} style={{ position: 'absolute', left: '-9999px', top: 0, width: '794px', background: 'white' }}
-                className="bg-white text-slate-900 text-sm font-sans">
-                <div className="p-8 space-y-8">
-
-                    {/* Header */}
-                    <div className="flex justify-between items-start border-b-2 border-blue-600 pb-6">
-                        <div>
-                            <h1 className="text-3xl font-black text-slate-900">CLIENT HISTORY</h1>
-                            <p className="text-sm text-slate-500 mt-1">Printed: {new Date().toLocaleDateString('fr-MA', { day: '2-digit', month: 'long', year: 'numeric' })} at {new Date().toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' })}</p>
-                        </div>
-                        <div className="text-right">
-                            <p className="text-lg font-black text-slate-900">{company?.name || 'My Company'}</p>
-                            {company?.address  && <p className="text-xs text-slate-500">{company.address}</p>}
-                            {(company?.city || company?.country) && <p className="text-xs text-slate-500">{[company.city, company.country].filter(Boolean).join(', ')}</p>}
-                            {company?.phone    && <p className="text-xs text-slate-500">{company.phone}</p>}
-                            {company?.tax_id   && <p className="text-xs text-slate-500">IF: {company.tax_id}</p>}
-                            {company?.ice      && <p className="text-xs text-slate-500">ICE: {company.ice}</p>}
-                        </div>
-                    </div>
-
-                    {/* Client info */}
-                    <div className="grid grid-cols-2 gap-6 bg-slate-50 rounded-lg p-4">
-                        <div>
-                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Client</p>
-                            <p className="font-black text-lg">{client.nom}</p>
-                            {client.email     && <p className="text-xs text-slate-500">{client.email}</p>}
-                            {client.telephone && <p className="text-xs text-slate-500">{client.telephone}</p>}
-                            {client.adresse   && <p className="text-xs text-slate-500">{client.adresse}</p>}
-                            {client.ville     && <p className="text-xs text-slate-500">{client.ville}</p>}
-                        </div>
-                        <div className="text-right">
-                            <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-1">Summary</p>
-                            <p className="text-xs text-slate-600">Total Invoiced: <span className="font-bold">{fmt(totalInvoiced)}</span></p>
-                            <p className="text-xs text-slate-600">Total Paid: <span className="font-bold text-green-700">{fmt(totalPaid)}</span></p>
-                            <p className="text-xs text-slate-600">Total Returned: <span className="font-bold text-purple-700">{fmt(totalReturned)}</span></p>
-                            <p className="text-xs font-bold mt-1">Balance Due: <span className={balance > 0 ? 'text-amber-600' : 'text-green-700'}>{fmt(balance)}</span></p>
-                        </div>
-                    </div>
-
-                    {/* ---- INVOICES ---- */}
-                    {invoices.length > 0 && (
-                        <div>
-                            <h2 className="text-base font-black uppercase tracking-wide text-blue-700 border-b border-blue-200 pb-2 mb-4">
-                                Sales Invoices ({invoices.length})
-                            </h2>
-                            <div className="space-y-5">
-                                {invoices.map((inv) => (
-                                    <div key={inv.uuid} className="border border-slate-200 rounded-lg overflow-hidden">
-                                        <div className="flex justify-between items-center bg-blue-50 px-4 py-2">
-                                            <div>
-                                                <span className="font-black text-blue-800 font-mono">{inv.code}</span>
-                                                <span className="ml-3 text-xs text-slate-500">Date: {fmtDate(inv.invoice_date)}</span>
-                                                {inv.created_at && <span className="ml-3 text-xs text-slate-400">Created: {fmtDateTime(inv.created_at)}</span>}
-                                            </div>
-                                            <span className={`rounded-full px-2 py-0.5 text-xs font-semibold ${
-                                                inv.status === 'paid' ? 'bg-green-100 text-green-700' :
-                                                inv.status === 'partial' ? 'bg-amber-100 text-amber-700' :
-                                                'bg-red-100 text-red-700'}`}>
-                                                {inv.status}
-                                            </span>
-                                        </div>
-                                        {inv.items && inv.items.length > 0 && (
-                                            <table className="w-full text-xs">
-                                                <thead className="bg-slate-50">
-                                                    <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wide">
-                                                        <th className="px-4 py-1.5 text-left">Product</th>
-                                                        <th className="px-4 py-1.5 text-center">Qty</th>
-                                                        <th className="px-4 py-1.5 text-right">Unit Price</th>
-                                                        <th className="px-4 py-1.5 text-right">Total</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100">
-                                                    {inv.items.map((item, i) => (
-                                                        <tr key={i}>
-                                                            <td className="px-4 py-1.5 font-medium">{item.product_name}</td>
-                                                            <td className="px-4 py-1.5 text-center">{item.quantity}</td>
-                                                            <td className="px-4 py-1.5 text-right font-mono">{fmt(item.unit_price)}</td>
-                                                            <td className="px-4 py-1.5 text-right font-mono font-semibold">{fmt(item.total_price)}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        )}
-                                        <div className="flex justify-between px-4 py-2 bg-slate-50 border-t border-slate-200 text-xs">
-                                            <div className="flex gap-4">
-                                                <span className="text-slate-500">Paid: <span className="font-bold text-green-700">{fmt(Number(inv.paid_amount))}</span></span>
-                                                <span className="text-slate-500">Remaining: <span className={`font-bold ${Number(inv.remaining_amount) > 0 ? 'text-red-600' : 'text-green-700'}`}>{fmt(Number(inv.remaining_amount))}</span></span>
-                                            </div>
-                                            <span className="font-bold">Total: {fmt(Number(inv.total_amount))}</span>
-                                        </div>
-                                        {inv.notes && <p className="px-4 py-1.5 text-xs text-slate-400 italic border-t border-slate-100">{inv.notes}</p>}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ---- RETURNS ---- */}
-                    {salesReturns.length > 0 && (
-                        <div>
-                            <h2 className="text-base font-black uppercase tracking-wide text-purple-700 border-b border-purple-200 pb-2 mb-4">
-                                Sales Returns ({salesReturns.length})
-                            </h2>
-                            <div className="space-y-5">
-                                {salesReturns.map((ret) => (
-                                    <div key={ret.uuid} className="border border-slate-200 rounded-lg overflow-hidden">
-                                        <div className="flex justify-between items-center bg-purple-50 px-4 py-2">
-                                            <div>
-                                                <span className="font-black text-purple-800 font-mono">{ret.uuid.slice(0, 8)}…</span>
-                                                {ret.invoice && <span className="ml-3 text-xs text-blue-600 font-mono">Invoice: {ret.invoice.code}</span>}
-                                                <span className="ml-3 text-xs text-slate-500">Date: {fmtDate(ret.return_date)}</span>
-                                                {ret.created_at && <span className="ml-3 text-xs text-slate-400">Created: {fmtDateTime(ret.created_at)}</span>}
-                                            </div>
-                                            <span className="text-xs font-bold text-purple-700">{fmt(Number(ret.total_amount))}</span>
-                                        </div>
-                                        {ret.items && ret.items.length > 0 && (
-                                            <table className="w-full text-xs">
-                                                <thead className="bg-slate-50">
-                                                    <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wide">
-                                                        <th className="px-4 py-1.5 text-left">Product</th>
-                                                        <th className="px-4 py-1.5 text-center">Qty</th>
-                                                        <th className="px-4 py-1.5 text-right">Unit Price</th>
-                                                        <th className="px-4 py-1.5 text-right">Total</th>
-                                                    </tr>
-                                                </thead>
-                                                <tbody className="divide-y divide-slate-100">
-                                                    {ret.items.map((item, i) => (
-                                                        <tr key={i}>
-                                                            <td className="px-4 py-1.5 font-medium">{item.product_name}</td>
-                                                            <td className="px-4 py-1.5 text-center">{item.quantity}</td>
-                                                            <td className="px-4 py-1.5 text-right font-mono">{fmt(item.unit_price)}</td>
-                                                            <td className="px-4 py-1.5 text-right font-mono font-semibold">{fmt(item.total_price)}</td>
-                                                        </tr>
-                                                    ))}
-                                                </tbody>
-                                            </table>
-                                        )}
-                                        {ret.notes && <p className="px-4 py-1.5 text-xs text-slate-400 italic border-t border-slate-100">{ret.notes}</p>}
-                                    </div>
-                                ))}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* ---- PAYMENTS ---- */}
-                    {payments.length > 0 && (
-                        <div>
-                            <h2 className="text-base font-black uppercase tracking-wide text-green-700 border-b border-green-200 pb-2 mb-4">
-                                Payments ({payments.length})
-                            </h2>
-                            <table className="w-full text-xs border border-slate-200 rounded-lg overflow-hidden">
-                                <thead className="bg-green-50">
-                                    <tr className="border-b border-slate-200 text-slate-400 uppercase tracking-wide">
-                                        <th className="px-4 py-2 text-left">Date</th>
-                                        <th className="px-4 py-2 text-left">Time</th>
-                                        <th className="px-4 py-2 text-left">Invoice</th>
-                                        <th className="px-4 py-2 text-left">Method</th>
-                                        <th className="px-4 py-2 text-left">Reference</th>
-                                        <th className="px-4 py-2 text-left">Notes</th>
-                                        <th className="px-4 py-2 text-right">Amount</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100">
-                                    {payments.map((p) => (
-                                        <tr key={p.uuid}>
-                                            <td className="px-4 py-2">{fmtDate(p.payment_date)}</td>
-                                            <td className="px-4 py-2 text-slate-400">{p.created_at ? new Date(p.created_at).toLocaleTimeString('fr-MA', { hour: '2-digit', minute: '2-digit' }) : '—'}</td>
-                                            <td className="px-4 py-2 font-mono text-blue-600">{p.sales_invoice?.code ?? '—'}</td>
-                                            <td className="px-4 py-2 font-medium">{p.payment_method ?? '—'}</td>
-                                            <td className="px-4 py-2 text-slate-500">{p.reference ?? '—'}</td>
-                                            <td className="px-4 py-2 text-slate-400 italic">{p.notes ?? '—'}</td>
-                                            <td className="px-4 py-2 text-right font-mono font-bold text-green-700">{fmt(Number(p.amount))}</td>
-                                        </tr>
-                                    ))}
-                                </tbody>
-                                <tfoot className="bg-green-50 border-t border-green-200">
-                                    <tr>
-                                        <td colSpan={6} className="px-4 py-2 font-bold text-right text-slate-600">Total Payments:</td>
-                                        <td className="px-4 py-2 text-right font-black text-green-700 font-mono">{fmt(totalPaid)}</td>
-                                    </tr>
-                                </tfoot>
-                            </table>
-                        </div>
-                    )}
-
-                    {/* ---- Grand totals ---- */}
-                    <div className="border-t-2 border-slate-900 pt-4">
-                        <div className="flex justify-end">
-                            <div className="w-72 space-y-1 text-sm">
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Total Invoiced</span>
-                                    <span className="font-bold font-mono">{fmt(totalInvoiced)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Total Returned</span>
-                                    <span className="font-bold font-mono text-purple-700">- {fmt(totalReturned)}</span>
-                                </div>
-                                <div className="flex justify-between">
-                                    <span className="text-slate-500">Total Paid</span>
-                                    <span className="font-bold font-mono text-green-700">- {fmt(totalPaid)}</span>
-                                </div>
-                                <div className="flex justify-between border-t border-slate-300 pt-1 font-black text-base">
-                                    <span>Balance Due</span>
-                                    <span className={`font-mono ${balance > 0 ? 'text-red-600' : 'text-green-700'}`}>{fmt(balance)}</span>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-
-                </div>
-            </div>
 
             {/* ===== SCREEN VIEW ===== */}
             <div className="flex flex-col gap-6 p-6">
@@ -480,9 +251,17 @@ export default function ClientHistory({ client, invoices, payments, salesReturns
                                 {client.ville ?? ''}{client.email ? ` · ${client.email}` : ''}
                             </p>
                         </div>
-                        <Button variant="outline" className="rounded-xl" onClick={handleDownloadPdf}>
-                            <Printer className="mr-2 h-4 w-4" /> Télécharger PDF
-                        </Button>
+                        <a href={(() => {
+                                const params = new URLSearchParams();
+                                if (dateFrom)               params.set('date_from', dateFrom);
+                                if (dateTo)                 params.set('date_to', dateTo);
+                                if (statusFilter !== 'all') params.set('status', statusFilter);
+                                const qs = params.toString();
+                                return `/clients/${client.uuid}/history/pdf${qs ? '?' + qs : ''}`;
+                            })()} target="_blank"
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
+                            <Printer className="h-4 w-4" /> Télécharger PDF
+                        </a>
                     </div>
                 </div>
 

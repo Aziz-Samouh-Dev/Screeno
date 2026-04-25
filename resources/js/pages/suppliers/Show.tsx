@@ -119,6 +119,11 @@ export default function ShowSupplier({ supplier, invoices, payments }: Props) {
                     </Button>
 
                     <div className="flex space-x-3">
+                        <a href={`/suppliers/${supplier.uuid}/history/pdf`} target="_blank"
+                            className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-medium text-slate-700 shadow-sm hover:bg-slate-50 transition-colors">
+                            <FileDown className="h-4 w-4" /> Télécharger PDF
+                        </a>
+
                         <Button
                             variant="ghost"
                             onClick={() =>
