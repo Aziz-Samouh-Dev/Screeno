@@ -6,7 +6,6 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Plus, Trash2, Save, ShoppingCart, ChevronDown, Search, PackagePlus } from "lucide-react"
 
 /* ================= TYPES ================= */
@@ -169,6 +168,122 @@ function EntityCombobox({
     )
 }
 
+/* ================= PRODUCT COMBOBOX ================= */
+
+function ProductCombobox({
+    products,
+    value,
+    onChange,
+    disabledIds,
+}: {
+    products: Product[]
+    value: number | null | undefined
+    onChange: (id: number) => void
+    disabledIds: number[]
+}) {
+    const [open, setOpen] = useState(false)
+    const [search, setSearch] = useState('')
+    const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
+    const triggerRef = useRef<HTMLButtonElement>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (!open) return
+        const handle = (e: MouseEvent) => {
+            if (
+                !triggerRef.current?.contains(e.target as Node) &&
+                !dropdownRef.current?.contains(e.target as Node)
+            ) { setOpen(false); setSearch('') }
+        }
+        const onScroll = () => { setOpen(false); setSearch('') }
+        document.addEventListener('mousedown', handle)
+        window.addEventListener('scroll', onScroll, true)
+        return () => {
+            document.removeEventListener('mousedown', handle)
+            window.removeEventListener('scroll', onScroll, true)
+        }
+    }, [open])
+
+    const openDropdown = () => {
+        if (triggerRef.current) {
+            const r = triggerRef.current.getBoundingClientRect()
+            setPos({ top: r.bottom + 4, left: r.left, width: Math.max(r.width, 260) })
+        }
+        setOpen(v => !v)
+    }
+
+    const filtered = products.filter(p =>
+        p.nom.toLowerCase().includes(search.toLowerCase())
+    )
+
+    const selected = products.find(p => p.id === value)
+
+    return (
+        <div className="relative">
+            <button
+                ref={triggerRef}
+                type="button"
+                onClick={openDropdown}
+                className="flex h-9 w-full items-center justify-between rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm hover:border-slate-300 transition-colors"
+            >
+                <span className={selected ? 'text-slate-900 font-medium truncate' : 'text-slate-400'}>
+                    {selected ? selected.nom : 'Sélectionner un produit'}
+                </span>
+                <ChevronDown className={`h-4 w-4 text-slate-400 shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+                <div
+                    ref={dropdownRef}
+                    style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
+                    className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
+                >
+                    <div className="p-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 px-2 py-1.5 bg-slate-50 rounded-lg">
+                            <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <input
+                                autoFocus
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Rechercher…"
+                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                            />
+                        </div>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto">
+                        {filtered.length > 0 ? filtered.map(p => {
+                            const alreadyUsed = disabledIds.includes(p.id) && value !== p.id
+                            return (
+                                <button
+                                    key={p.id}
+                                    type="button"
+                                    disabled={alreadyUsed}
+                                    className={`w-full text-left px-3 py-2.5 flex items-center justify-between gap-2 transition-colors
+                                        ${alreadyUsed ? 'opacity-40 cursor-not-allowed' : 'hover:bg-slate-50'}
+                                        ${value === p.id ? 'bg-violet-50' : ''}
+                                    `}
+                                    onClick={() => { if (!alreadyUsed) { onChange(p.id); setOpen(false); setSearch('') } }}
+                                >
+                                    <span className="font-medium text-slate-900 text-sm truncate">{p.nom}</span>
+                                    <span className={`text-xs font-mono shrink-0 ${
+                                        p.stock_quantity === 0 ? 'text-red-500'
+                                        : p.stock_quantity <= 10 ? 'text-amber-500'
+                                        : 'text-slate-400'
+                                    }`}>
+                                        {p.stock_quantity} en stock
+                                    </span>
+                                </button>
+                            )
+                        }) : (
+                            <p className="px-3 py-4 text-sm text-center text-slate-400">Aucun résultat</p>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
+}
+
 /* ================= COMPONENT ================= */
 
 export default function InvoiceForm({
@@ -232,6 +347,10 @@ export default function InvoiceForm({
 
     const allExistingProductsUsed =
         products.length > 0 && selectedProductIds.length >= products.length
+
+    const hasIncompleteNewProduct = items.some(
+        item => item.is_new && (!item.product_name?.trim() || !item.unit_price || !item.quantity)
+    )
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-8 w-full">
@@ -312,7 +431,9 @@ export default function InvoiceForm({
                         <Button
                             type="button"
                             size="sm"
-                            className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg"
+                            className="bg-violet-600 hover:bg-violet-700 text-white rounded-lg disabled:opacity-50"
+                            disabled={hasIncompleteNewProduct}
+                            title={hasIncompleteNewProduct ? 'Complétez le produit en cours avant d\'en ajouter un autre' : undefined}
                             onClick={() => append({ product_id: null, product_name: '', quantity: 1, unit_price: 0, sale_price: 0, is_new: true })}
                         >
                             <PackagePlus className="w-3 h-3 mr-1" /> Nouveau produit
@@ -357,38 +478,12 @@ export default function InvoiceForm({
                                                     />
                                                 </div>
                                             ) : (
-                                                <Select
-                                                    value={items[index]?.product_id?.toString() ?? ""}
-                                                    onValueChange={(v) => handleProductChange(index, v)}
-                                                >
-                                                    <SelectTrigger className="h-9 border border-slate-200 rounded-lg">
-                                                        <SelectValue placeholder="Sélectionner" />
-                                                    </SelectTrigger>
-                                                    <SelectContent>
-                                                        {products.map((p) => {
-                                                            const alreadyUsed = selectedProductIds.includes(p.id) &&
-                                                                Number(items[index]?.product_id) !== p.id
-                                                            return (
-                                                                <SelectItem
-                                                                    key={p.id}
-                                                                    value={p.id.toString()}
-                                                                    disabled={alreadyUsed}
-                                                                >
-                                                                    <span className="flex items-center gap-2">
-                                                                        {p.nom}
-                                                                        <span className={`text-xs font-mono ${
-                                                                            p.stock_quantity === 0 ? "text-red-500"
-                                                                            : p.stock_quantity <= 10 ? "text-amber-500"
-                                                                            : "text-slate-400"
-                                                                        }`}>
-                                                                            ({p.stock_quantity} en stock)
-                                                                        </span>
-                                                                    </span>
-                                                                </SelectItem>
-                                                            )
-                                                        })}
-                                                    </SelectContent>
-                                                </Select>
+                                                <ProductCombobox
+                                                    products={products}
+                                                    value={items[index]?.product_id}
+                                                    onChange={(id) => handleProductChange(index, String(id))}
+                                                    disabledIds={selectedProductIds}
+                                                />
                                             )}
                                         </td>
 

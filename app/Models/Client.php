@@ -44,9 +44,14 @@ class Client extends Model
     }
 
     public function salesReturns()
-{
-    return $this->hasMany(SalesReturn::class, 'client_id');
-}
+    {
+        return $this->hasMany(SalesReturn::class, 'client_id');
+    }
+
+    public function clientTransactions()
+    {
+        return $this->hasMany(ClientTransaction::class);
+    }
 
     /*
     |--------------------------------------------------------------------------

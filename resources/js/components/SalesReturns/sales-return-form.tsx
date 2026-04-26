@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Trash2, Loader2, PackageX, AlertCircle, ChevronDown, Search } from "lucide-react";
 
 /* ------------------------------------------------------------------ */
@@ -140,6 +139,103 @@ function InvoiceCombobox({
             )}
         </div>
     );
+}
+
+/* ------------------------------------------------------------------ */
+/*  Add-Item Combobox                                                   */
+/* ------------------------------------------------------------------ */
+
+function AddItemCombobox({
+    items,
+    onAdd,
+}: {
+    items: ReturnableItem[]
+    onAdd: (productId: number) => void
+}) {
+    const [open, setOpen] = useState(false)
+    const [search, setSearch] = useState('')
+    const [pos, setPos] = useState({ top: 0, left: 0, width: 0 })
+    const triggerRef = useRef<HTMLButtonElement>(null)
+    const dropdownRef = useRef<HTMLDivElement>(null)
+
+    useEffect(() => {
+        if (!open) return
+        const handle = (e: MouseEvent) => {
+            if (
+                !triggerRef.current?.contains(e.target as Node) &&
+                !dropdownRef.current?.contains(e.target as Node)
+            ) { setOpen(false); setSearch('') }
+        }
+        const onScroll = () => { setOpen(false); setSearch('') }
+        document.addEventListener('mousedown', handle)
+        window.addEventListener('scroll', onScroll, true)
+        return () => {
+            document.removeEventListener('mousedown', handle)
+            window.removeEventListener('scroll', onScroll, true)
+        }
+    }, [open])
+
+    const openDropdown = () => {
+        if (triggerRef.current) {
+            const r = triggerRef.current.getBoundingClientRect()
+            setPos({ top: r.bottom + 4, left: r.right - Math.max(r.width, 280), width: Math.max(r.width, 280) })
+        }
+        setOpen(v => !v)
+    }
+
+    const filtered = items.filter(r =>
+        r.product_name.toLowerCase().includes(search.toLowerCase())
+    )
+
+    return (
+        <div className="relative">
+            <button
+                ref={triggerRef}
+                type="button"
+                onClick={openDropdown}
+                className="flex h-9 w-64 items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm hover:border-slate-300 transition-colors"
+            >
+                <span className="text-slate-500">+ Ajouter un article</span>
+                <ChevronDown className={`h-4 w-4 text-slate-400 shrink-0 ml-2 transition-transform ${open ? 'rotate-180' : ''}`} />
+            </button>
+
+            {open && (
+                <div
+                    ref={dropdownRef}
+                    style={{ position: 'fixed', top: pos.top, left: pos.left, width: pos.width, zIndex: 9999 }}
+                    className="bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden"
+                >
+                    <div className="p-2 border-b border-slate-100">
+                        <div className="flex items-center gap-2 px-2 py-1.5 bg-slate-50 rounded-lg">
+                            <Search className="h-3.5 w-3.5 text-slate-400 shrink-0" />
+                            <input
+                                autoFocus
+                                value={search}
+                                onChange={e => setSearch(e.target.value)}
+                                placeholder="Rechercher un article…"
+                                className="flex-1 bg-transparent text-sm outline-none placeholder:text-slate-400"
+                            />
+                        </div>
+                    </div>
+                    <div className="max-h-52 overflow-y-auto">
+                        {filtered.length > 0 ? filtered.map(r => (
+                            <button
+                                key={r.product_id}
+                                type="button"
+                                className="w-full text-left px-3 py-2.5 hover:bg-slate-50 flex items-center justify-between gap-2 transition-colors"
+                                onClick={() => { onAdd(r.product_id); setOpen(false); setSearch('') }}
+                            >
+                                <span className="font-medium text-slate-900 text-sm truncate">{r.product_name}</span>
+                                <span className="text-xs font-mono text-slate-400 shrink-0">max {r.available_quantity}</span>
+                            </button>
+                        )) : (
+                            <p className="px-3 py-4 text-sm text-center text-slate-400">Aucun résultat</p>
+                        )}
+                    </div>
+                </div>
+            )}
+        </div>
+    )
 }
 
 /* ------------------------------------------------------------------ */
@@ -354,21 +450,10 @@ export default function SalesReturnForm({
                     </Label>
 
                     {availableToAdd.length > 0 && (
-                        <Select onValueChange={(v) => addItem(Number(v))}>
-                            <SelectTrigger className="w-60 rounded-xl">
-                                <SelectValue placeholder="+ Ajouter un article" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {availableToAdd.map((r) => (
-                                    <SelectItem key={r.product_id} value={String(r.product_id)}>
-                                        {r.product_name}{" "}
-                                        <span className="text-slate-400 text-xs">
-                                            (max {r.available_quantity})
-                                        </span>
-                                    </SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <AddItemCombobox
+                            items={availableToAdd}
+                            onAdd={addItem}
+                        />
                     )}
                 </div>
 

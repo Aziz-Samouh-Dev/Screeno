@@ -1,7 +1,7 @@
 import { Link } from '@inertiajs/react';
 import {
     LayoutDashboard, Package, Users, Truck, Settings,
-    ShoppingCart, Receipt, PackageX, Building2,
+    CreditCard, Warehouse, Building2,
 } from 'lucide-react';
 import { NavFooter } from '@/components/nav-footer';
 import { NavMain } from '@/components/nav-main';
@@ -15,13 +15,12 @@ import AppLogo from './app-logo';
 import { dashboard } from '@/routes';
 
 const mainNavItems: NavItem[] = [
-    { title: 'Tableau de bord',   href: dashboard(),          icon: LayoutDashboard, iconColor: 'text-blue-500'    },
-    { title: 'Produits',          href: '/produits',          icon: Package,         iconColor: 'text-amber-500'   },
-    { title: 'Clients',           href: '/clients',           icon: Users,           iconColor: 'text-emerald-500' },
-    { title: 'Fournisseurs',      href: '/suppliers',         icon: Truck,           iconColor: 'text-violet-500'  },
-    { title: "Factures d'achat",  href: '/purchase_invoices', icon: ShoppingCart,    iconColor: 'text-orange-500'  },
-    { title: 'Factures de vente', href: '/sales_invoices',    icon: Receipt,         iconColor: 'text-sky-500'     },
-    { title: 'Retours de vente',  href: '/sales_returns',     icon: PackageX,        iconColor: 'text-rose-500'    },
+    { title: 'Tableau de bord', href: dashboard(),   icon: LayoutDashboard, iconColor: 'text-blue-500'    },
+    { title: 'Produits',        href: '/produits',   icon: Package,         iconColor: 'text-amber-500'   },
+    { title: 'Clients',         href: '/clients',    icon: Users,           iconColor: 'text-emerald-500' },
+    { title: 'Fournisseurs',    href: '/suppliers',  icon: Truck,           iconColor: 'text-violet-500'  },
+    { title: 'Paiements',       href: '/payments',   icon: CreditCard,      iconColor: 'text-sky-500'     },
+    { title: 'Stock endommagé', href: '/stock',      icon: Warehouse,       iconColor: 'text-orange-500'  },
 ];
 
 const footerNavItems: NavItem[] = [

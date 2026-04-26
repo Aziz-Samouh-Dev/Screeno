@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Client;
+use App\Models\ClientTransaction;
 use App\Models\CompanyProfile;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Http\Request;
@@ -135,33 +136,30 @@ class ClientController extends Controller
      */
     public function show(Client $client)
     {
+        $transactions = ClientTransaction::where('client_id', $client->id)
+            ->orderBy('created_at', 'asc')
+            ->get();
+
+        $rt = 0.0;
+        $rows = $transactions->map(function ($t) use (&$rt) {
+            $rt += $t->type === 'F' ? (float) $t->total_price : -(float) $t->total_price;
+            return [
+                'uuid'          => $t->uuid,
+                'type'          => $t->type,
+                'product_name'  => $t->product_name,
+                'quantity'      => $t->quantity,
+                'unit_price'    => (float) $t->unit_price,
+                'total_price'   => (float) $t->total_price,
+                'running_total' => round($rt, 2),
+                'notes'         => $t->notes,
+                'created_at'    => $t->created_at->toIso8601String(),
+            ];
+        });
+
         return Inertia::render('clients/Show', [
-            'client' => $client->only(['uuid', 'nom', 'email', 'telephone', 'adresse', 'ville', 'notes', 'status', 'created_at', 'updated_at']),
-            'invoices' => $client->salesInvoices()->orderByDesc('invoice_date')->get()->map(fn($inv) => [
-                'uuid'             => $inv->uuid,
-                'code'             => $inv->code,
-                'invoice_date'     => $inv->invoice_date,
-                'total_amount'     => $inv->total_amount,
-                'paid_amount'      => $inv->paid_amount,
-                'remaining_amount' => $inv->remaining_amount,
-                'status'           => $inv->status,
-            ]),
-            'payments' => $client->payments()->with(['salesInvoice', 'paymentMethod'])->orderByDesc('payment_date')->get()->map(fn($p) => [
-                'uuid'           => $p->uuid,
-                'amount'         => $p->amount,
-                'payment_date'   => $p->payment_date,
-                'reference'      => $p->reference,
-                'payment_method' => $p->paymentMethod?->name,
-                'notes'          => $p->notes,
-                'sales_invoice'  => $p->salesInvoice ? ['uuid' => $p->salesInvoice->uuid, 'code' => $p->salesInvoice->code] : null,
-            ]),
-            'salesReturns' => $client->salesReturns()->with('invoice')->orderByDesc('return_date')->get()->map(fn($r) => [
-                'uuid'         => $r->uuid,
-                'return_date'  => $r->return_date,
-                'total_amount' => $r->total_amount,
-                'notes'        => $r->notes,
-                'invoice'      => $r->invoice ? ['uuid' => $r->invoice->uuid, 'code' => $r->invoice->code] : null,
-            ]),
+            'client'       => $client->only(['uuid', 'nom', 'email', 'telephone', 'adresse', 'ville', 'notes', 'status', 'created_at', 'updated_at']),
+            'transactions' => $rows,
+            'balance'      => round($rt, 2),
         ]);
     }
 

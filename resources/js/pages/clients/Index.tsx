@@ -5,7 +5,8 @@ import type { BreadcrumbItem } from '@/types';
 import {
     ChevronRight, ChevronLeft,
     Plus, Users, UserCheck, UserX, Search, Filter,
-    ArrowUpDown, Layers, LayoutGrid, Trash2, Download, Eye, Pencil,
+    ArrowUpDown, Layers, LayoutGrid, Trash2, Download, Pencil,
+    ShoppingCart, RotateCcw, CreditCard, History, X,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -59,6 +60,29 @@ export default function Index() {
 
     const { confirmState, confirm, closeConfirm } = useConfirmDialog();
 
+    const [paymentModal, setPaymentModal] = useState<{ uuid: string; nom: string } | null>(null);
+    const [paymentAmount, setPaymentAmount] = useState('');
+    const [paymentNotes, setPaymentNotes] = useState('');
+    const [paymentProcessing, setPaymentProcessing] = useState(false);
+
+    const openPayment = (client: Client) => {
+        setPaymentModal({ uuid: client.uuid, nom: client.nom });
+        setPaymentAmount('');
+        setPaymentNotes('');
+    };
+
+    const submitPayment = () => {
+        if (!paymentModal || !paymentAmount) return;
+        setPaymentProcessing(true);
+        router.post(`/clients/${paymentModal.uuid}/payment`, {
+            amount: parseFloat(paymentAmount),
+            notes: paymentNotes,
+        }, {
+            onSuccess: () => { setPaymentModal(null); setPaymentProcessing(false); },
+            onError: () => setPaymentProcessing(false),
+        });
+    };
+
     const go = (extra: object = {}) =>
         router.get('/clients', { search, status: status === 'all' ? undefined : status, sort, per_page: perPage, ...extra },
             { preserveState: true, preserveScroll: true, replace: true });
@@ -95,6 +119,55 @@ export default function Index() {
     return (
         <AppLayout breadcrumbs={breadcrumbs}>
             <Head title="Clients" />
+
+            {/* Payment Modal */}
+            {paymentModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm"
+                    onClick={() => setPaymentModal(null)}>
+                    <div className="bg-white rounded-3xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4"
+                        onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center justify-between">
+                            <div>
+                                <h2 className="font-bold text-slate-900">Enregistrer un paiement</h2>
+                                <p className="text-sm text-slate-400">{paymentModal.nom}</p>
+                            </div>
+                            <button onClick={() => setPaymentModal(null)} className="rounded-lg p-1 hover:bg-slate-100 transition-colors">
+                                <X className="h-4 w-4 text-slate-400" />
+                            </button>
+                        </div>
+                        <div className="space-y-3">
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">
+                                    Montant <span className="text-red-500">*</span>
+                                </label>
+                                <Input
+                                    type="number" step="0.01" min="0.01"
+                                    placeholder="0.00"
+                                    value={paymentAmount}
+                                    onChange={e => setPaymentAmount(e.target.value)}
+                                    className="h-10 rounded-xl text-right font-mono"
+                                    autoFocus
+                                />
+                            </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-500 uppercase tracking-wider block mb-1">Notes (optionnel)</label>
+                                <textarea value={paymentNotes} onChange={e => setPaymentNotes(e.target.value)}
+                                    rows={2} placeholder="Référence, mode de paiement…"
+                                    className="w-full rounded-xl border border-slate-200 px-3 py-2 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-slate-300" />
+                            </div>
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                            <Button variant="outline" className="flex-1 rounded-xl" onClick={() => setPaymentModal(null)}>Annuler</Button>
+                            <Button className="flex-1 rounded-xl bg-green-600 hover:bg-green-700"
+                                disabled={!paymentAmount || paymentProcessing}
+                                onClick={submitPayment}>
+                                <CreditCard className="h-4 w-4 mr-1.5" />
+                                {paymentProcessing ? 'Enregistrement…' : 'Confirmer'}
+                            </Button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             <ConfirmDialog
                 open={confirmState.open}
@@ -200,7 +273,7 @@ export default function Index() {
                                         <th className="px-5 py-3 text-left cursor-pointer" onClick={() => handleSort('status')}>
                                             Statut <SortIcon field="status" />
                                         </th>
-                                        <th className="px-5 py-3 text-center w-28">Actions</th>
+                                        <th className="px-5 py-3 text-center">Actions</th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -242,12 +315,29 @@ export default function Index() {
                                                     {client.status === 'active' ? 'Actif' : 'Inactif'}
                                                 </span>
                                             </td>
-                                            <td className="px-5 py-3.5 text-center" onClick={e => e.stopPropagation()}>
-                                                <div className="flex items-center justify-center gap-1">
-                                                    <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg"
-                                                        onClick={() => router.visit(`/clients/${client.uuid}`)}>
-                                                        <Eye className="h-3.5 w-3.5" />
-                                                    </Button>
+                                            <td className="px-3 py-3.5 text-center" onClick={e => e.stopPropagation()}>
+                                                <div className="flex items-center justify-center gap-1 flex-wrap">
+                                                    {/* F – Vente */}
+                                                    <button title="Vente" onClick={() => router.visit(`/clients/${client.uuid}/sell`)}
+                                                        className="h-7 w-7 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold flex items-center justify-center transition-colors">
+                                                        F
+                                                    </button>
+                                                    {/* R – Retour */}
+                                                    <button title="Retour" onClick={() => router.visit(`/clients/${client.uuid}/return`)}
+                                                        className="h-7 w-7 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold flex items-center justify-center transition-colors">
+                                                        R
+                                                    </button>
+                                                    {/* P – Paiement */}
+                                                    <button title="Paiement" onClick={() => openPayment(client)}
+                                                        className="h-7 w-7 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-bold flex items-center justify-center transition-colors">
+                                                        P
+                                                    </button>
+                                                    {/* History */}
+                                                    <button title="Historique" onClick={() => router.visit(`/clients/${client.uuid}/ledger`)}
+                                                        className="h-7 w-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors">
+                                                        <History className="h-3.5 w-3.5" />
+                                                    </button>
+                                                    <div className="w-px h-5 bg-slate-200 mx-0.5" />
                                                     <Button variant="ghost" size="icon" className="h-7 w-7 rounded-lg"
                                                         onClick={() => router.visit(`/clients/${client.uuid}/edit`)}>
                                                         <Pencil className="h-3.5 w-3.5" />
@@ -290,13 +380,27 @@ export default function Index() {
                                         <span>{client.telephone || '—'}</span>
                                         <span>{client.ville || '—'}</span>
                                     </div>
-                                    <div className="mt-3 flex gap-2" onClick={e => e.stopPropagation()}>
-                                        <Button size="sm" variant="outline" className="flex-1 h-7 text-xs rounded-lg"
-                                            onClick={() => router.visit(`/clients/${client.uuid}/edit`)}>Modifier</Button>
-                                        <Button size="sm" variant="destructive" className="h-7 w-7 p-0 rounded-lg"
-                                            onClick={() => handleDelete(client.uuid, client.nom)}>
-                                            <Trash2 className="h-3.5 w-3.5" />
-                                        </Button>
+                                    <div className="mt-3 flex gap-1.5 flex-wrap" onClick={e => e.stopPropagation()}>
+                                        <button title="Vente" onClick={() => router.visit(`/clients/${client.uuid}/sell`)}
+                                            className="h-7 px-2.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-xs font-bold transition-colors">F</button>
+                                        <button title="Retour" onClick={() => router.visit(`/clients/${client.uuid}/return`)}
+                                            className="h-7 px-2.5 rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-xs font-bold transition-colors">R</button>
+                                        <button title="Paiement" onClick={() => openPayment(client)}
+                                            className="h-7 px-2.5 rounded-lg bg-green-600 hover:bg-green-700 text-white text-xs font-bold transition-colors">P</button>
+                                        <button title="Historique" onClick={() => router.visit(`/clients/${client.uuid}/ledger`)}
+                                            className="h-7 w-7 rounded-lg bg-slate-100 hover:bg-slate-200 text-slate-600 flex items-center justify-center transition-colors">
+                                            <History className="h-3.5 w-3.5" />
+                                        </button>
+                                        <div className="flex gap-1 ml-auto">
+                                            <Button size="sm" variant="outline" className="h-7 w-7 p-0 rounded-lg"
+                                                onClick={() => router.visit(`/clients/${client.uuid}/edit`)}>
+                                                <Pencil className="h-3.5 w-3.5" />
+                                            </Button>
+                                            <Button size="sm" variant="destructive" className="h-7 w-7 p-0 rounded-lg"
+                                                onClick={() => handleDelete(client.uuid, client.nom)}>
+                                                <Trash2 className="h-3.5 w-3.5" />
+                                            </Button>
+                                        </div>
                                     </div>
                                 </div>
                             ))}
